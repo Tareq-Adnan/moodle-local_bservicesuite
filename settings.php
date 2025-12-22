@@ -15,17 +15,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language pack for BS Service Suite
+ * TODO describe file settings
  *
  * @package    local_bservicesuite
- * @category   string
- * @copyright  2025 Brain Station 23 ltd <sales@brainstation-23.com>
+ * @copyright  2025 Cursive Technology, Inc. <info@cursivetechnology.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @author     Tarekul Islam <tarekul.islam@brainstation-23.com>
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['bsservicessuite:view'] = 'View Analytics';
-$string['pluginname'] = 'BS Service Suite';
-$string['sync_user_task'] = 'Sync School user to platform';
+$settings = new admin_settingpage(
+    'local_bservicesuite',
+    get_string('pluginname', 'local_bservicesuite')
+);
+
+$settings->add(new admin_setting_configtext(
+    'local_bservicesuite/platformurl',
+    'Base URL',
+    'Base URL of Platform admin application (with http/https)',
+    '',
+    PARAM_URL
+));
+
+$ADMIN->add('localplugins', $settings);

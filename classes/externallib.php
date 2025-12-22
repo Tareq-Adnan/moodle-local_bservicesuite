@@ -57,9 +57,8 @@ class externallib extends external_api {
 
         $params = self::validate_parameters(
             self::get_analytics_parameters(),
-            [
-                'courseid' => $courseid,
-        ]);
+            ['courseid' => $courseid]
+        );
 
         has_all_capabilities(['local/bsservicessuite:view'], context_system::instance());
 
@@ -67,7 +66,7 @@ class externallib extends external_api {
             'data' => [],
             'logs' => [],
             'totalcourse' => 0,
-            'totaluser' => 0
+            'totaluser' => 0,
         ];
 
         $logs    = $DB->get_records('logstore_standard_log', null, 'timecreated DESC', '*', 0, 10);
@@ -94,7 +93,7 @@ class externallib extends external_api {
             'data' => array_values($courses),
             'logs' => $logs,
             'totalcourse' => count($courses),
-            'totaluser' => $users
+            'totaluser' => $users,
         ];
     }
 
@@ -107,27 +106,28 @@ class externallib extends external_api {
         return new external_single_structure(
             [
                 'data' => new external_multiple_structure(
-                new external_single_structure([
+                    new external_single_structure([
                         'id' => new external_value(PARAM_INT, 'Course ID'),
                         'fullname' => new external_value(PARAM_TEXT, 'Course Fullname'),
                         'shortname' => new external_value(PARAM_TEXT, 'Course Shortname'),
-                        'completion' => new external_value(PARAM_FLOAT, 'Total number of completion'),
-                    ],
-                )),
+                        'completion' => new external_value(PARAM_FLOAT, 'Total number of completion')])
+                ),
                 'logs' => new external_multiple_structure(
-                new external_single_structure([
-                        'course'     => new external_value(PARAM_INT, 'Course ID'),
-                        'coursename' => new external_value(PARAM_TEXT, 'Course Fullname'),
-                        'time'       => new external_value(PARAM_TEXT, 'Course Shortname'),
-                        'userfullname' => new external_value(PARAM_TEXT, 'User name'),
-                        'contextlevel' => new external_value(PARAM_INT, 'Context Level', VALUE_OPTIONAL),
-                        'component' => new external_value(PARAM_TEXT, 'component name'),
-                        'eventname' => new external_value(PARAM_TEXT, 'Event name'),
-                        'description' => new external_value(PARAM_TEXT, 'log description'),
-                        'origin' => new external_value(PARAM_TEXT, 'log origin'),
-                        'ip' => new external_value(PARAM_TEXT, 'request ip'),
-                    ],
-                ), 'logs', VALUE_OPTIONAL),
+                    new external_single_structure([
+                                'course'     => new external_value(PARAM_INT, 'Course ID'),
+                                'coursename' => new external_value(PARAM_TEXT, 'Course Fullname'),
+                                'time'       => new external_value(PARAM_TEXT, 'Course Shortname'),
+                                'userfullname' => new external_value(PARAM_TEXT, 'User name'),
+                                'contextlevel' => new external_value(PARAM_INT, 'Context Level', VALUE_OPTIONAL),
+                                'component' => new external_value(PARAM_TEXT, 'component name'),
+                                'eventname' => new external_value(PARAM_TEXT, 'Event name'),
+                                'description' => new external_value(PARAM_TEXT, 'log description'),
+                                'origin' => new external_value(PARAM_TEXT, 'log origin'),
+                                'ip' => new external_value(PARAM_TEXT, 'request ip'),
+                            ]),
+                    'logs',
+                    VALUE_OPTIONAL
+                ),
                 'totalcourse' => new external_value(PARAM_INT, 'Total number of courses'),
                 'totaluser' => new external_value(PARAM_INT, 'Total number of courses'),
 

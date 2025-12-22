@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component    = 'local_bservicesuite';
 $plugin->release      = '1.0';
-$plugin->version      = 2025120303;
+$plugin->version      = 2025120400;
 $plugin->requires     = 2024100700;
 $plugin->supported    = [405, 501];
 $plugin->maturity     = MATURITY_STABLE;
