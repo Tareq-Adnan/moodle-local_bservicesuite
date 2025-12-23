@@ -15,17 +15,33 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language pack for BS Service Suite
+ * Event observers for BS Service Suite
  *
  * @package    local_bservicesuite
- * @category   string
- * @copyright  2025 Brain Station 23 ltd <sales@brainstation-23.com>
+ * @category   event
+ * @copyright  2025 Cursive Technology, Inc. <info@cursivetechnology.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @author     Tarekul Islam <tarekul.islam@brainstation-23.com>
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['bsservicessuite:view'] = 'View Analytics';
-$string['pluginname'] = 'BS Service Suite';
-$string['sync_user_task'] = 'Sync School user to platform';
+$observers = [
+    [
+        'eventname' => '\core\event\user_created',
+        'callback' => '\local_bservicesuite\observers::create_user',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+    [
+        'eventname' => '\core\event\user_updated',
+        'callback' => '\local_bservicesuite\observers::update_user',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+    [
+        'eventname' => '\core\event\user_deleted',
+        'callback' => '\local_bservicesuite\observers::delete_user',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+];

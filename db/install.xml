@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/bservicesuite/db" VERSION="20251218" COMMENT="XMLDB file for Moodle local/bservicesuite"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+    <TABLES>
+        <TABLE NAME="local_bservice_user_sync" COMMENT="Queue for syncing users to Laravel">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="payload" TYPE="text" NOTNULL="true"/>
+                <FIELD NAME="synced" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="0=pending,1=success,2=failed"/>
+            </FIELDS>
+
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="userid_fk" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+            </INDEXES>
+
+        </TABLE>
+    </TABLES>
+</XMLDB>

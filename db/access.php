@@ -37,5 +37,5 @@ $capabilities = [
             'editingteacher' => CAP_ALLOW,
         ],
         'clonepermission' => 'moodle/site:configwrite',
-    ],
+        ],
 ];

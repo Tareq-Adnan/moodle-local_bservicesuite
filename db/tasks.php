@@ -15,17 +15,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language pack for BS Service Suite
+ * Scheduled task definitions for BS Service Suite
+ *
+ * Documentation: {@link https://moodledev.io/docs/apis/subsystems/task/scheduled}
  *
  * @package    local_bservicesuite
- * @category   string
- * @copyright  2025 Brain Station 23 ltd <sales@brainstation-23.com>
+ * @category   task
+ * @copyright  2025 Cursive Technology, Inc. <info@cursivetechnology.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @author     Tarekul Islam <tarekul.islam@brainstation-23.com>
  */
 
 defined('MOODLE_INTERNAL') || die();
-
-$string['bsservicessuite:view'] = 'View Analytics';
-$string['pluginname'] = 'BS Service Suite';
-$string['sync_user_task'] = 'Sync School user to platform';
+use local_bservicesuite\task\sync_users;
+$tasks = [
+    [
+        'classname' => sync_users::class,
+        'blocking' => 0,
+        'minute' => '0',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
+];
