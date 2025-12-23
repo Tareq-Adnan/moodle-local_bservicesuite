@@ -110,7 +110,8 @@ class externallib extends external_api {
                         'id' => new external_value(PARAM_INT, 'Course ID'),
                         'fullname' => new external_value(PARAM_TEXT, 'Course Fullname'),
                         'shortname' => new external_value(PARAM_TEXT, 'Course Shortname'),
-                        'completion' => new external_value(PARAM_FLOAT, 'Total number of completion')])
+                        'completion' => new external_value(PARAM_FLOAT, 'Total number of completion'),
+                        'enrolled' => new external_value(PARAM_INT, 'Total number of enrolled user')])
                 ),
                 'logs' => new external_multiple_structure(
                     new external_single_structure([

@@ -16,6 +16,7 @@
 
 namespace local_bservicesuite;
 
+use context_course;
 use core_user;
 use stdClass;
 use curl;
@@ -62,6 +63,9 @@ class helper {
     public static function total_completions(&$courses) {
         foreach ($courses as $course) {
             $course->completion = self::completion($course);
+            $context = context_course::instance($course->id);
+            $users   = get_enrolled_users($context, 'mod/quiz:attempt');
+            $course->enrolled = count($users);
         }
     }
 
