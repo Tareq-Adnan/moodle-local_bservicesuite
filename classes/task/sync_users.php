@@ -52,8 +52,7 @@ class sync_users extends scheduled_task {
             if (!$result) {
                 continue;
             }
-            $record->synced = 1;
-            $DB->update_record('local_bservice_user_sync', $record);
+            $result ? helper::mark_synced($record->userid, $result) : null;
         }
     }
 }

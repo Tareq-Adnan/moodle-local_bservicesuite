@@ -39,4 +39,12 @@ $functions = [
         'capabilities' => 'local/bsservicessuite:view',
         'services'     => ['moodle_mobile_app'],
     ],
+    'local_bservicesuite_update_profile' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'update_profile',
+        'description'  => 'update profile info',
+        'type'         => 'write',
+        'capabilities' => 'local/bsservicessuite:updateownprofile',
+        'services'     => ['moodle_mobile_app'],
+    ],
 ];

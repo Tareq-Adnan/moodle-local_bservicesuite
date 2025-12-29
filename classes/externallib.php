@@ -18,11 +18,14 @@ namespace local_bservicesuite;
 
 use context_course;
 use context_system;
+use context_user;
 use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
+use core_user;
+use moodle_exception;
 
 
 /**
@@ -133,6 +136,183 @@ class externallib extends external_api {
                 'totaluser' => new external_value(PARAM_INT, 'Total number of courses'),
 
             ],
+        );
+    }
+
+
+    /**
+     * Returns description of update_update_profile parameters
+     *
+     * @return external_function_parameters Parameters structure
+     */
+    public static function update_profile_parameters() {
+
+        $userfields = [
+            'id' => new external_value(core_user::get_property_type('id'), 'ID of the user'),
+            'username' => new external_value(core_user::get_property_type('username'), 'username', VALUE_OPTIONAL),
+            'firstname' => new external_value(
+                core_user::get_property_type('firstname'),
+                'The first name(s) of the user',
+                VALUE_OPTIONAL,
+                '',
+                NULL_NOT_ALLOWED
+            ),
+            'lastname' => new external_value(
+                core_user::get_property_type('lastname'),
+                'The family name of the user',
+                VALUE_OPTIONAL
+            ),
+            'email' => new external_value(
+                core_user::get_property_type('email'),
+                'A valid and unique email address',
+                VALUE_OPTIONAL,
+                '',
+                NULL_NOT_ALLOWED
+            )];
+
+        return new external_function_parameters(
+            ['users' => new external_multiple_structure(new external_single_structure($userfields))]
+        );
+    }
+
+    /**
+     * Update user profile information
+     *
+     * @param array $users
+     * @return array
+     */
+    public static function update_profile($users) {
+        global $DB, $CFG, $USER;
+        require_once($CFG->dirroot . "/user/lib.php");
+        require_once($CFG->dirroot . "/user/profile/lib.php"); // Required for customfields related function.
+        require_once($CFG->dirroot . '/user/editlib.php');
+
+        $params = self::validate_parameters(self::update_profile_parameters(), ['users' => $users]);
+
+        $warnings = [];
+        foreach ($params['users'] as $user) {
+            $context = context_user::instance($user['id']);
+            self::validate_context($context);
+            require_capability('local/bsservicessuite:updateownprofile', $context);
+
+            // Catch any exception while updating a user and return it as a warning.
+            try {
+                $transaction = $DB->start_delegated_transaction();
+
+                // First check the user exists.
+                if (!$existinguser = core_user::get_user($user['id'])) {
+                    throw new moodle_exception(
+                        'invaliduserid',
+                        '',
+                        '',
+                        null,
+                        'Invalid user ID'
+                    );
+                }
+                // Check if we are trying to update an admin.
+                if ($existinguser->id != $USER->id && is_siteadmin($existinguser) && !is_siteadmin($USER)) {
+                    throw new moodle_exception(
+                        'usernotupdatedadmin',
+                        '',
+                        '',
+                        null,
+                        'Cannot update admin accounts'
+                    );
+                }
+                // Other checks (deleted, remote or guest users).
+                if ($existinguser->deleted) {
+                    throw new moodle_exception(
+                        'usernotupdateddeleted',
+                        'local_bservicesuite',
+                        '',
+                        null,
+                        'User is a deleted user'
+                    );
+                }
+
+                if (isguestuser($existinguser->id)) {
+                    throw new moodle_exception(
+                        'usernotupdatedguest',
+                        'local_bservicesuite',
+                        '',
+                        null,
+                        'Cannot update guest account'
+                    );
+                }
+                // Check duplicated emails.
+                if (isset($user['email']) && $user['email'] !== $existinguser->email) {
+                    if (!validate_email($user['email'])) {
+                        throw new moodle_exception(
+                            'useremailinvalid',
+                            'local_bservicesuite',
+                            '',
+                            null,
+                            'Invalid email address'
+                        );
+                    } else if (empty($CFG->allowaccountssameemail)) {
+                        // Make a case-insensitive query for the given email address
+                        // and make sure to exclude the user being updated.
+                        $select = $DB->sql_equal('email', ':email', false) . ' AND mnethostid = :mnethostid AND id <> :userid';
+                        $params = [
+                            'email' => $user['email'],
+                            'mnethostid' => $CFG->mnet_localhost_id,
+                            'userid' => $user['id'],
+                        ];
+                        // Skip if there are other user(s) that already have the same email.
+                        if ($DB->record_exists_select('user', $select, $params)) {
+                            throw new moodle_exception(
+                                'useremailduplicate',
+                                '',
+                                '',
+                                null,
+                                'Duplicate email address'
+                            );
+                        }
+                    }
+                }
+
+                user_update_user($user, false, true);
+
+                $userobject = (object)$user;
+
+                // Trigger event.
+                \core\event\user_updated::create_from_userid($user['id'])->trigger();
+
+                if (isset($user['suspended']) && $user['suspended']) {
+                    \core\session\manager::destroy_user_sessions($user['id']);
+                }
+
+                $transaction->allow_commit();
+            } catch (moodle_exception $e) {
+                try {
+                    $transaction->rollback($e);
+                } catch (moodle_exception $e) {
+                    $warning = [];
+                    $warning['item'] = 'user';
+                    $warning['itemid'] = $user['id'];
+                    if ($e instanceof moodle_exception) {
+                        $warning['warningcode'] = $e->errorcode;
+                    } else {
+                        $warning['warningcode'] = $e->getCode();
+                    }
+                    $warning['message'] = $e->getMessage();
+                    $warnings[] = $warning;
+                }
+            }
+        }
+        return ['warnings' => $warnings];
+    }
+
+    /**
+     * Returns description of update_profile return values
+     *
+     * @return external_single_structure Return value structure
+     */
+    public static function update_profile_returns() {
+        return new external_single_structure(
+            [
+                'warnings' => new \core_external\external_warnings(),
+            ]
         );
     }
 }
