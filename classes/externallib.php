@@ -168,7 +168,10 @@ class externallib extends external_api {
                 VALUE_OPTIONAL,
                 '',
                 NULL_NOT_ALLOWED
-            )];
+            ),
+            'city' => new external_value(core_user::get_property_type('city'), 'Home city of the user', VALUE_OPTIONAL),
+            'country' => new external_value(core_user::get_property_type('country')),
+        ];
 
         return new external_function_parameters(
             ['users' => new external_multiple_structure(new external_single_structure($userfields))]
