@@ -26,12 +26,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['bsservicessuite:updateownprofile'] = 'Update own profile';
-$string['bsservicessuite:view'] = 'View Analytics';
-$string['editprofile'] = 'Edit Profile';
-$string['pluginname'] = 'BS Service Suite';
-$string['profileupdated'] = 'Profile updated successfully';
-$string['sync_user_task'] = 'Sync School user to platform';
-$string['useremailinvalid'] = 'User email invalid';
-$string['usernotupdateddeleted'] = 'User not updated or deleted';
-$string['usernotupdatedguest'] = 'User not updated or guest';
+$string['bsservicessuite:updateownprofile'] = 'تحديث الملف الشخصي';
+$string['bsservicessuite:view'] = 'عرض التحليلات';
+$string['editprofile'] = 'تعديل الملف الشخصي';
+$string['pluginname'] = 'حزمة خدمات BS';
+$string['profileupdated'] = 'تم تحديث الملف الشخصي بنجاح';
+$string['sync_user_task'] = 'مزامنة مستخدم المدرسة مع المنصة';
+$string['useremailinvalid'] = 'البريد الإلكتروني للمستخدم غير صالح';
+$string['usernotupdateddeleted'] = 'لم يتم تحديث المستخدم أو تم حذفه';
+$string['usernotupdatedguest'] = 'لم يتم تحديث المستخدم أو المستخدم ضيف';
