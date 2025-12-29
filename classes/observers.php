@@ -33,9 +33,9 @@ class observers {
     public static function create_user(\core\event\user_created $event) {
         $eventdata = $event->get_data();
         $userid = $eventdata['objectid'];
-        $data = helper::create_or_update_user($userid);
+        $data   = helper::create_or_update_user($userid);
         $result = helper::sync($data->payload);
-        $result ? helper::mark_synced($userid) : null;
+        $result ? helper::mark_synced($userid, $result) : null;
     }
 
     /**
@@ -49,7 +49,7 @@ class observers {
         $userid = $edata['objectid'];
         $data   = helper::create_or_update_user($userid);
         $result = helper::sync($data->payload);
-        $result ? helper::mark_synced($userid) : null;
+        $result ? helper::mark_synced($userid, $result) : null;
     }
 
     /**

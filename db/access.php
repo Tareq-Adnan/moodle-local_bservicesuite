@@ -38,4 +38,16 @@ $capabilities = [
         ],
         'clonepermission' => 'moodle/site:configwrite',
         ],
+        'local/bsservicessuite:updateownprofile' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_USER,
+
+        'archetypes' => [
+            'user' => CAP_ALLOW,
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+        'clonepermission' => 'moodle/user:editownprofile'],
 ];

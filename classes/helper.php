@@ -175,13 +175,18 @@ class helper {
     public static function create_or_update_user($userid) {
         global $DB;
 
-        $user   = core_user::get_user($userid);
+        $user   = $DB->get_record('user', ['id' => $userid], 'id,username,email,password', MUST_EXIST);
         $exists = $DB->get_record('local_bservice_user_sync', ['userid' => $user->id]);
 
         $record = self::build_record($user);
         if ($exists) {
             $record->id  = $exists->id;
             $DB->update_record('local_bservice_user_sync', $record);
+            if ($exists->login_id) {
+                $modified = json_decode($record->payload, true);
+                $modified['id'] = $exists->login_id;
+                $record->payload = json_encode($modified);
+            }
             return $record;
         }
 
@@ -218,6 +223,7 @@ class helper {
      */
     public static function sync($data) {
         global $CFG;
+        require_once($CFG->dirroot . '/lib/filelib.php');
         $endpoint  = get_config('local_bservicesuite', 'platformurl');
         $remoteurl = $endpoint . self::USER_SYNC_ENDPOINT;
         $moodleurl = $CFG->wwwroot;
@@ -301,11 +307,12 @@ class helper {
      * @param int $userid The ID of the user whose sync record should be marked as synced
      * @return void
      */
-    public static function mark_synced($userid) {
+    public static function mark_synced($userid, $result) {
         global $DB;
 
-        $record          = $DB->get_record('local_bservice_user_sync', ['userid' => $userid]);
-        $record->synced  = 1;
+        $record           = $DB->get_record('local_bservice_user_sync', ['userid' => $userid]);
+        $record->synced   = 1;
+        $record->login_id = isset($result['id']) ? $result['id'] : 0;
         $DB->update_record('local_bservice_user_sync', $record);
     }
 

@@ -5,9 +5,11 @@
         <TABLE NAME="local_bservice_user_sync" COMMENT="Queue for syncing users to Laravel">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="login_id" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
                 <FIELD NAME="payload" TYPE="text" NOTNULL="true"/>
                 <FIELD NAME="synced" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="0=pending,1=success,2=failed"/>
+
             </FIELDS>
 
             <KEYS>

@@ -26,6 +26,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['bsservicessuite:updateownprofile'] = 'Update own profile';
 $string['bsservicessuite:view'] = 'View Analytics';
 $string['pluginname'] = 'BS Service Suite';
 $string['sync_user_task'] = 'Sync School user to platform';
+$string['useremailinvalid'] = 'User email invalid';
+$string['usernotupdateddeleted'] = 'User not updated or deleted';
+$string['usernotupdatedguest'] = 'User not updated or guest';
