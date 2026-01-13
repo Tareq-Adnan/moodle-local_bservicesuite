@@ -44,4 +44,16 @@ $observers = [
         'internal' => true,
         'priority' => 9999,
     ],
+    [
+        'eventname' => '\core\event\course_created',
+        'callback' => '\local_bservicesuite\observers::create_course',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+    [
+        'eventname' => '\core\event\course_updated',
+        'callback' => '\local_bservicesuite\observers::update_course',
+        'internal' => true,
+        'priority' => 9999,
+    ],
 ];

@@ -14,20 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_bservicesuite\task;
+use core\task\adhoc_task;
+use local_bservicesuite\utils\backup_helper;
 /**
- * Version information for BS Service Suite
+ * Class backup_to_s3
  *
  * @package    local_bservicesuite
- * @copyright  2025 Brain Station 23 ltd <sales@brainstation-23.com>
+ * @copyright  2026 Cursive Technology, Inc. <info@cursivetechnology.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @author     Tarekul Islam <tarekul.islam@brainstation-23.com>
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component    = 'local_bservicesuite';
-$plugin->release      = '1.0';
-$plugin->version      = 2025120709;
-$plugin->requires     = 2024100700;
-$plugin->supported    = [405, 501];
-$plugin->maturity     = MATURITY_STABLE;
+class backup_to_s3 extends adhoc_task {
+    /**
+     * Execute the task.
+     */
+    public function execute() {
+        // Task implementation goes here.
+        $data = $this->get_custom_data();
+        $courseid = $data->courseid;
+        $userid = $data->userid;
+        backup_helper::perform_backup($courseid, $userid);
+    }
+}

@@ -47,4 +47,28 @@ $functions = [
         'capabilities' => 'local/bsservicessuite:updateownprofile',
         'services'     => ['moodle_mobile_app'],
     ],
+    'local_bservicesuite_course_backup' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'course_backup',
+        'description'  => 'course backup',
+        'type'         => 'write',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
+    'local_bservicesuite_course_restore' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'course_restore',
+        'description'  => 'course restore',
+        'type'         => 'write',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
+    'local_bservicesuite_get_courses' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'get_courses',
+        'description'  => 'Get courses',
+        'type'         => 'read',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
 ];
