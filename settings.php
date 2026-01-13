@@ -65,4 +65,11 @@ $settings->add(new admin_setting_configtext(
     PARAM_TEXT
 ));
 
+$settings->add(new admin_setting_configcheckbox(
+    'local_bservicesuite/is_school',
+    'Identity',
+    'School Identity',
+    1,
+));
+
 $ADMIN->add('localplugins', $settings);
