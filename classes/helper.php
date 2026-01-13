@@ -413,6 +413,12 @@ class helper {
      */
     public static function create_or_update_platform_course($courseid, $update = false) {
         global $DB;
+
+        $isschool = get_config('local_bservicesuite', 'is_school');
+        if (intval($isschool)) {
+            return;
+        }
+
         $course = $DB->get_record('course', ['id' => $courseid]);
         $category = core_course_category::get($course->category);
         [$curl, $remoteurl, $options] = self::get_curl(self::CENTRAL_COURSE_CREATE);
