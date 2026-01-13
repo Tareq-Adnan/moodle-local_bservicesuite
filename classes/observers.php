@@ -16,6 +16,8 @@
 
 namespace local_bservicesuite;
 
+use moodle_exception;
+
 /**
  * Class observers
  *
@@ -61,5 +63,29 @@ class observers {
     public static function delete_user(\core\event\user_deleted $event) {
         $edata  = $event->get_data();
         helper::delete_user($edata);
+    }
+
+    /**
+     * Observer for user deletion event.
+     *
+     * @param \core\event\course_created $event The user deleted event
+     * @return void
+     */
+    public static function create_course(\core\event\course_created $event) {
+        $edata  = $event->get_data();
+        $courseid = $edata['courseid'];
+        helper::create_or_update_platform_course($courseid);
+    }
+
+    /**
+     * Observer for user deletion event.
+     *
+     * @param \core\event\course_updated $event The user deleted event
+     * @return void
+     */
+    public static function update_course(\core\event\course_updated $event) {
+        $edata  = $event->get_data();
+        $courseid = $edata['courseid'];
+        helper::create_or_update_platform_course($courseid, true);
     }
 }

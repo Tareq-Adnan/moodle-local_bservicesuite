@@ -16,16 +16,23 @@
 
 namespace local_bservicesuite;
 
+
+use core\task\manager;
 use context_course;
 use context_system;
 use context_user;
+use core_course_category;
 use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use core_user;
+use local_bservicesuite\task\backup_to_s3;
+use local_bservicesuite\task\restore_from_s3;
+use local_bservicesuite\utils\backup_helper;
 use moodle_exception;
+
 
 
 /**
@@ -316,6 +323,185 @@ class externallib extends external_api {
             [
                 'warnings' => new \core_external\external_warnings(),
             ]
+        );
+    }
+
+    /**
+     * Returns description of course_backup parameters
+     *
+     * @return external_function_parameters Parameters structure containing:
+     *         - courseid (int) The ID of the course to backup
+     */
+    public static function course_backup_parameters() {
+        return new external_function_parameters(
+            [
+                'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            ]
+        );
+    }
+
+    /**
+     * Creates a backup of a course
+     *
+     * @param int $courseid The ID of the course to backup
+     * @return array Returns an array containing:
+     *               - courseid: The ID of the course that was backed up
+     *               - backup_file: Full filesystem path to the generated backup file
+     *               - filename: Name of the backup file
+     * @throws moodle_exception If the course doesn't exist or user lacks required capabilities
+     */
+    public static function course_backup($courseid) {
+        global $USER;
+
+        $params = self::validate_parameters(self::course_backup_parameters(), ['courseid' => $courseid]);
+
+        $context = context_course::instance($params['courseid']);
+        self::validate_context($context);
+        require_capability('local/bsservicessuite:view', $context);
+
+        $course = get_course($params['courseid']);
+
+        $task = new backup_to_s3();
+        $task->set_custom_data(['courseid' => $course->id, 'userid' => $USER->id]);
+        manager::queue_adhoc_task($task, true);
+
+        return [
+                'status' => 'queued',
+                'taskid' => $task->get_id(),
+            ];
+    }
+
+    /**
+     * Returns description of course_backup return values
+     *
+     * @return external_single_structure Return value structure containing:
+     *         - courseid (int) The ID of the course that was backed up
+     *         - backup_file (string) The full filesystem path to the generated backup file
+     *         - filename (string) The name of the backup file
+     */
+    public static function course_backup_returns() {
+        return new external_single_structure([
+            'status'    => new external_value(PARAM_TEXT, 'Backup file name'),
+            'taskid'    => new external_value(PARAM_INT, 'Backup file base64 encoded'),
+        ]);
+    }
+
+    /**
+     * Returns description of course_restore parameters
+     *
+     * @return external_function_parameters Parameters structure containing:
+     *         - filepath (string) The path to the backup file to restore from
+     *         - categoryid (int) The category ID where the restored course should be created
+     */
+    public static function course_restore_parameters() {
+        return new external_function_parameters(
+            [
+                'filepath' => new external_value(PARAM_TEXT, 'Course ID'),
+                'grade' => new external_value(PARAM_INT, 'cat id'),
+                'gradename' => new external_value(PARAM_TEXT, 'cat name'),
+                'courseid' => new external_value(PARAM_INT, 'course id'),
+                'schoolid' => new external_value(PARAM_INT, 'school id'),
+            ]
+        );
+    }
+
+    /**
+     * Restores a course from a backup file
+     *
+     * @param string $filepath Path to the backup file to restore from
+     * @param int $categoryid Category ID where the restored course should be created
+     * @param int $school_id Category ID where the restored course should be created
+     * @return array Returns an array containing:
+     *               - status: Status of the restore task (e.g. 'queued')
+     * @throws moodle_exception If validation fails or user lacks required capabilities
+     */
+    public static function course_restore($filepath, $grade, $gradename, $courseid, $schoolid) {
+        global $USER;
+
+        $params = self::validate_parameters(self::course_restore_parameters(), [
+            'filepath' => $filepath,
+            'grade' => $grade,
+            'gradename' => $gradename,
+            'courseid' => $courseid,
+            'schoolid' => $schoolid,
+        ]);
+
+        $task = new restore_from_s3();
+        $task->set_custom_data(['grade' => $params['grade'], 'userid' => $USER->id, 'course' => $courseid,
+            'coursepath' => $params['filepath'], 'gradename' => $params['gradename'], 'school_id' => $params['schoolid']]);
+        manager::queue_adhoc_task($task, true);
+
+        return [
+            'status' => 'queued',
+        ];
+    }
+
+
+    /**
+     * Returns description of course_restore return values
+     *
+     * @return external_single_structure Return value structure containing:
+     *         - status (string) The status of the restore task (e.g. 'queued')
+     */
+    public static function course_restore_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_TEXT, 'ID of the newly created course'),
+        ]);
+    }
+
+    /**
+     * Returns description of get_courses parameters
+     *
+     * @return external_function_parameters Empty parameters structure since this method takes no parameters
+     */
+    public static function get_courses_parameters() {
+        return new external_function_parameters([]);
+    }
+
+    /**
+     * Get list of all courses
+     *
+     * @return array Array of course objects containing id, category, fullname, shortname
+     * @throws moodle_exception If user lacks required capabilities
+     */
+    public static function get_courses() {
+        global $DB;
+
+        self::validate_parameters(self::get_courses_parameters(), []);
+        has_all_capabilities(['local/bsservicessuite:view'], context_system::instance());
+
+        $courses = get_courses('all', 'c.id ASC', 'c.id, c.category, c.fullname, c.shortname');
+        $categories = core_course_category::get_all();
+
+        $courses = array_filter($courses, function ($course) use ($categories) {
+            if ($course->id != SITEID) {
+                $course->grade_name = $categories[$course->category]->name;
+                $course->grade = $course->category;
+            }
+            return $course->id != SITEID;
+        });
+
+        return array_values($courses);
+    }
+
+    /**
+     * Returns description of get_courses return values
+     *
+     * @return external_multiple_structure Return value structure containing course details:
+     *         - id (int) Course ID
+     *         - category (int) Category ID
+     *         - fullname (string) Course full name
+     *         - shortname (string) Course short name
+     */
+    public static function get_courses_returns() {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'id' => new external_value(PARAM_INT, 'Course ID'),
+                'fullname' => new external_value(PARAM_TEXT, 'Course Fullname'),
+                'shortname' => new external_value(PARAM_TEXT, 'Course Shortname'),
+                'grade' => new external_value(PARAM_INT, 'Category ID'),
+                'grade_name' => new external_value(PARAM_TEXT, 'Category Name'),
+            ])
         );
     }
 }

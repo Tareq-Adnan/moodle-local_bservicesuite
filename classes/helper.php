@@ -17,6 +17,8 @@
 namespace local_bservicesuite;
 
 use context_course;
+use core\exception\moodle_exception;
+use core_course_category;
 use core_user;
 use stdClass;
 use curl;
@@ -38,6 +40,21 @@ class helper {
      * Used to construct the full sync URL by appending to the platform base URL
      */
     private const USER_SYNC_ENDPOINT = '/api/school/sync-user';
+    /**
+     * Endpoint URL path for updating course paths in remote system
+     * Used to construct the full update URL by appending to the platform base URL
+     */
+    public const UPDATE_COURSEPATH_ENDPOINT = '/api/course/update';
+    /**
+     * Endpoint URL path for updating course paths in remote system
+     * Used to construct the full update URL by appending to the platform base URL
+     */
+    public const UPDATE_NEWCOURSE_ENDPOINT = '/api/school-course/update';
+    /**
+     * Endpoint URL path for creating new course created in central lms
+     * Used to construct the full update URL by appending to the platform base URL
+     */
+    public const CENTRAL_COURSE_CREATE = '/api/course/create';
 
     /**
      * Get all visible courses except the site course (id=1)
@@ -222,35 +239,12 @@ class helper {
      * @return array|bool Returns decoded JSON response on success, false on failure
      */
     public static function sync($data) {
-        global $CFG;
-        require_once($CFG->dirroot . '/lib/filelib.php');
-        $endpoint  = get_config('local_bservicesuite', 'platformurl');
-        $remoteurl = $endpoint . self::USER_SYNC_ENDPOINT;
-        $moodleurl = $CFG->wwwroot;
 
-        if (empty($endpoint)) {
-            debugging(
-                'User sync failed. Platform URL is not configured.',
-                DEBUG_DEVELOPER
-            );
+        [ $curl, $remoteurl, $options ] = self::get_curl(self::USER_SYNC_ENDPOINT);
+
+        if (!$curl) {
             return false;
         }
-
-        $curl = new curl();
-
-        // Set headers properly.
-        $curl->setHeader([
-            'X-Moodle-Url: ' . $moodleurl,
-            'Content-Type: application/json',
-            'Accept: application/json',
-        ]);
-
-        // Set curl options.
-        $options = [
-            'CURLOPT_RETURNTRANSFER' => true,
-            'CURLOPT_TIMEOUT' => 10,
-            'CURLOPT_CONNECTTIMEOUT' => 5,
-        ];
 
         try {
             $response = $curl->post(
@@ -365,5 +359,128 @@ class helper {
         $record->synced  = 0;
         $record->userid  = $user->id;
         return $record;
+    }
+
+
+    /**
+     * Creates and configures a curl instance for API requests
+     *
+     * @param string $apiend The API endpoint path to append to the platform URL
+     * @return array | bool Returns configured curl instance, remote URL, and options or false if platform URL not set
+     */
+    public static function get_curl($apiend) {
+        global $CFG;
+        require_once($CFG->dirroot . '/lib/filelib.php');
+        $endpoint  = get_config('local_bservicesuite', 'platformurl');
+        $remoteurl = $endpoint . $apiend;
+        $moodleurl = $CFG->wwwroot;
+
+        if (empty($endpoint)) {
+            debugging(
+                'Platform URL is not configured.',
+                DEBUG_DEVELOPER
+            );
+            return false;
+        }
+
+        $curl = new curl();
+
+        // Set headers properly.
+        $curl->setHeader([
+            'X-Moodle-Url: ' . $moodleurl,
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ]);
+
+        // Set curl options.
+        $options = [
+            'CURLOPT_RETURNTRANSFER' => true,
+            'CURLOPT_TIMEOUT' => 10,
+            'CURLOPT_CONNECTTIMEOUT' => 5,
+        ];
+
+        return [$curl, $remoteurl, $options];
+    }
+
+    /**
+     * Creates a new course in the platform by sending course data to remote system
+     *
+     * Takes a Moodle course ID and sends the course details to the remote platform
+     * via API call to create a corresponding course record there.
+     *
+     * @param int $courseid The ID of the Moodle course to create in platform
+     * @return void
+     */
+    public static function create_or_update_platform_course($courseid, $update = false) {
+        global $DB;
+        $course = $DB->get_record('course', ['id' => $courseid]);
+        $category = core_course_category::get($course->category);
+        [$curl, $remoteurl, $options] = self::get_curl(self::CENTRAL_COURSE_CREATE);
+
+        if (!$curl) {
+            throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', 'Platform URL not configured');
+        }
+
+        $data = [
+            'id'         => $course->id,
+            'fullname'   => $course->fullname,
+            'shortname'  => $course->shortname,
+            'grade'      => $course->category,
+            'grade_name' => $category->name,
+            'status'     => 'available',
+        ];
+
+        if ($update) {
+            $data['coursepath'] = "reset";
+        }
+
+        try {
+            $response = $curl->post(
+                $remoteurl,
+                json_encode($data),
+                $options
+            );
+
+            // Check curl-level errors.
+            if ($curl->get_errno()) {
+                debugging(
+                    'Platform course create error: ' . $curl->error,
+                    DEBUG_DEVELOPER
+                );
+                throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', $curl->error);
+            }
+
+            // Check HTTP status.
+            $httpcode = $curl->get_info()['http_code'] ?? 0;
+
+            if ($httpcode < 200 || $httpcode >= 300) {
+                debugging(
+                    'Platform course create failed. HTTP Code: ' . $httpcode .
+                    ' Response: ' . $response,
+                    DEBUG_DEVELOPER
+                );
+                throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', 'HTTP Code: ' . $httpcode);
+            }
+
+            $decoded = json_decode($response, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                debugging(
+                    'Platform course create invalid response: ' . $response,
+                    DEBUG_DEVELOPER
+                );
+                throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', 'Invalid JSON response');
+            }
+
+            if (empty($decoded['status'])) {
+                throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', $decoded);
+            }
+        } catch (\Exception $e) {
+            debugging(
+                'Curl exception: ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+            throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', $e->getMessage());
+        }
     }
 }

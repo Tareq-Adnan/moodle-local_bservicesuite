@@ -28,10 +28,17 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['bsservicessuite:updateownprofile'] = 'Update own profile';
 $string['bsservicessuite:view'] = 'View Analytics';
+$string['controllererror'] = 'Controller error occurred';
+$string['coursecreatefail'] = "Failed to create platform course";
+$string['downloadfailed'] = 'Failed to download backup from S3';
 $string['editprofile'] = 'Edit Profile';
+$string['errorbackup'] = 'Error during backup process';
+$string['errorrestore'] = 'Error during restore process';
+$string['extractfailed'] = 'Failed to extract backup file';
 $string['pluginname'] = 'BS Service Suite';
 $string['profileupdated'] = 'Profile updated successfully';
 $string['sync_user_task'] = 'Sync School user to platform';
+$string['uploadfailed'] = 'Failed to upload backup to S3';
 $string['useremailinvalid'] = 'User email invalid';
 $string['usernotupdateddeleted'] = 'User not updated or deleted';
 $string['usernotupdatedguest'] = 'User not updated or guest';

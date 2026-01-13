@@ -36,5 +36,33 @@ $settings->add(new admin_setting_configtext(
     '',
     PARAM_URL
 ));
+$settings->add(new admin_setting_configtext(
+    'local_bservicesuite/region',
+    'S3 Region',
+    'AWS region for S3 storage',
+    '',
+    PARAM_TEXT
+));
+$settings->add(new admin_setting_configtext(
+    'local_bservicesuite/aws_bucket',
+    'S3 Bucket',
+    'Name of the S3 bucket to use for backups',
+    '',
+    PARAM_TEXT
+));
+$settings->add(new admin_setting_configtext(
+    'local_bservicesuite/s3_access_key',
+    'S3 Access Key',
+    'AWS access key for S3 storage',
+    '',
+    PARAM_TEXT
+));
+$settings->add(new admin_setting_configtext(
+    'local_bservicesuite/s3_secret_key',
+    'S3 Secret Key',
+    'AWS secret key for S3 storage',
+    '',
+    PARAM_TEXT
+));
 
 $ADMIN->add('localplugins', $settings);
