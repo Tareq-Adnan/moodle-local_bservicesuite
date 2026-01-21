@@ -73,3 +73,12 @@ $settings->add(new admin_setting_configcheckbox(
 ));
 
 $ADMIN->add('localplugins', $settings);
+$ADMIN->add(
+    'accounts',
+    new admin_externalpage(
+        'local_bservicesuite_customuseruplaod',
+        'Upload User with Section',
+        "$CFG->wwwroot/local/bservicesuite/pages/upload_users.php",
+        'tool/uploaduser:uploaduserpictures'
+    )
+);
