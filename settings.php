@@ -30,6 +30,13 @@ $settings = new admin_settingpage(
 );
 
 $settings->add(new admin_setting_configtext(
+    'local_bservicesuite/fromemail',
+    'Base email',
+    'Base email address from which system emails will sent.',
+    '',
+    PARAM_EMAIL
+));
+$settings->add(new admin_setting_configtext(
     'local_bservicesuite/platformurl',
     'Base URL',
     'Base URL of Platform admin application (with http/https)',

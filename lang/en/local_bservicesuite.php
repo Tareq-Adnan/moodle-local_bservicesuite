@@ -125,3 +125,4 @@ You can view the full report at: {$a->url}
 $string['adminnotificationemailsubject'] = 'User Import Completed - {$a}';
 $string['generatedpasswords'] = "Generated Passwords";
 $string['newuserpasswordemailsubject'] = "New user account";
+$string['sent_assesment_report'] = "Sent Assessment Report";

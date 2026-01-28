@@ -1,0 +1,170 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_bservicesuite/report
+
+    Template for displaying a report in the Business Services Suite.
+    This template provides a structured layout for presenting report data and analytics.
+    
+    Classes required for JS:
+    * none
+    
+    Data attributes required for JS:
+    * none
+    Example context (json):
+    {
+    }
+}}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment Completion Notification</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 40px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+                                Assessment Completed! 🎯
+                            </h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding: 30px 40px 20px 40px;">
+                            <p style="margin: 0; font-size: 16px; color: #333333; line-height: 1.5;">
+                                Dear <strong>{{#parentname}}{{parentname}}{{/parentname}}{{^parentname}}Parent{{/parentname}}</strong>,
+                            </p>
+                            <p style="margin: 15px 0 0 0; font-size: 15px; color: #666666; line-height: 1.6;">
+                                We're pleased to inform you that your child, <strong style="color: #667eea;">{{student}}</strong>, has completed an assessment.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Assessment Info Card -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8f9fa; border-radius: 6px; border-left: 4px solid #667eea;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #333333; font-weight: 600;">
+                                            📋 Assessment Summary
+                                        </h2>
+                                        
+                                        <!-- Assessment Details -->
+                                        <table width="100%" cellpadding="8" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                                    <strong>Assessment Title:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; color: #333333; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                    {{assessmentname}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                                    <strong>Course:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; color: #333333; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                    {{course}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                                    <strong>Assessment Type:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; color: #333333; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                    {{assessmenttype}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                                    <strong>Completion Date:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; color: #333333; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                    {{completiondate}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                                    <strong>Score Obtained:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; color: #333333; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                    <strong style="color: #667eea; font-size: 16px;">{{score}} / {{total}}</strong>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                                    <strong>Pass Grade:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; color: #333333; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                                                    {{passgrade}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #666666; padding: 8px 0;">
+                                                    <strong>Status:</strong>
+                                                </td>
+                                                <td style="font-size: 14px; padding: 8px 0; text-align: right;">
+                                                    <span style="background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                                                        {{status}}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer Message -->
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">
+                                If you have any questions regarding this assessment, please feel free to contact the course teacher or the school administration.
+                            </p>
+                            <p style="margin: 15px 0 0 0; font-size: 14px; color: #666666; line-height: 1.6;">
+                                Thank you for your continued support in your child's learning journey.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; font-size: 12px; color: #999999;">
+                                This is an automated notification. Please do not reply to this email.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

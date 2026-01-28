@@ -56,4 +56,28 @@ $observers = [
         'internal' => true,
         'priority' => 9999,
     ],
+    [
+        'eventname' => '\mod_assign\event\submission_graded',
+        'callback' => '\local_bservicesuite\observers::submission_report',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+        [
+        'eventname' => '\mod_quiz\event\attempt_submitted',
+        'callback' => '\local_bservicesuite\observers::quiz_report',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+        [
+        'eventname' => '\mod_quiz\event\attempt_manual_grading_completed',
+        'callback' => '\local_bservicesuite\observers::quiz_manual_report',
+        'internal' => true,
+        'priority' => 9999,
+    ],
+    [
+        'eventname' => '\core\event\user_graded',
+        'callback' => '\local_bservicesuite\observers::gradebook_report',
+        'internal' => true,
+        'priority' => 9999,
+    ],
 ];

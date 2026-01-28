@@ -16,7 +16,8 @@
 
 namespace local_bservicesuite;
 
-use moodle_exception;
+use local_bservicesuite\utils\report;
+use stdClass;
 
 /**
  * Class observers
@@ -87,5 +88,59 @@ class observers {
         $edata  = $event->get_data();
         $courseid = $edata['courseid'];
         helper::create_or_update_platform_course($courseid, true);
+    }
+
+    /**
+     * Observer for submission graded event.
+     *
+     * @param \mod_assign\event\submission_graded $event The submission graded event
+     * @return void
+     */
+    public static function submission_report(\mod_assign\event\submission_graded $event) {
+        $edata = $event->get_data();
+        report::generate_assessment_report_task($edata);
+    }
+
+    /**
+     * Observer for quiz submitted graded event.
+     *
+     * @param \mod_quiz\event\attempt_submitted $event The submission graded event
+     * @return void
+     */
+    public static function quiz_report(\mod_quiz\event\attempt_submitted $event) {
+        $edata = $event->get_data();
+        report::generate_assessment_report_task($edata);
+    }
+
+    /**
+     * Observer for quiz manual graded event.
+     *
+     * @param \mod_quiz\event\attempt_manual_grading_completed $event The submission graded event
+     * @return void
+     */
+    public static function quiz_manual_report(\mod_quiz\event\attempt_manual_grading_completed $event) {
+        $edata = $event->get_data();
+        report::generate_assessment_report_task($edata);
+    }
+
+    /**
+     * Observer for manual graded event.
+     *
+     * @param \core\event\user_graded $event The submission graded event
+     * @return void
+     */
+    public static function gradebook_report(\core\event\user_graded $event) {
+        $edata = $event->get_data();
+
+        $gradeitemid = $edata['other']['itemid'];
+        $gradeitem = \grade_item::fetch(['id' => $gradeitemid]);
+        $cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance, $gradeitem->courseid, false, MUST_EXIST);
+        $data = [
+            'relateduserid' => $edata['relateduserid'],
+            'courseid' => $edata['contextinstanceid'],
+            'contextinstanceid' => $cm->id,
+        ];
+
+        report::generate_assessment_report_task($data);
     }
 }
