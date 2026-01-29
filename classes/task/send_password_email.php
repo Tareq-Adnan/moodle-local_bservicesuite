@@ -66,6 +66,7 @@ class send_password_email extends \core\task\adhoc_task {
         $a->lastname = $user->lastname;
         $a->username = $user->username;
         $a->password = $data->password;
+        $a->email = $data->email;
         $a->site = $site->fullname;
         $a->url = $CFG->wwwroot;
         $a->signoff = generate_email_signoff();
@@ -75,7 +76,7 @@ class send_password_email extends \core\task\adhoc_task {
         $messagehtml = text_to_html($message, false, false, true);
 
         // Send email
-        $emailsent = email_to_user($user, $supportuser, $subject, $message, $messagehtml);
+        $emailsent = email_to_user($user, $supportuser, $subject, $message, $message);
 
         // Update password record
         $this->update_password_record($data->batchid, $data->userid, $emailsent ? 1 : 0);

@@ -205,7 +205,8 @@ class csv_user_upload {
                     $student->id,
                     $studentpassword,
                     $batchid,
-                    'student'
+                    'student',
+                    $student->email,
                 );
                 $results['emails_queued']++;
             }
@@ -216,7 +217,8 @@ class csv_user_upload {
                     $parent->id,
                     $parentpassword,
                     $batchid,
-                    'parent'
+                    'parent',
+                    $parent->email,
                 );
                 $results['emails_queued']++;
             }
@@ -339,7 +341,7 @@ class csv_user_upload {
     /**
      * Queue password email via adhoc task
      */
-    private function queue_password_email($userid, $password, $batchid, $usertype) {
+    private function queue_password_email($userid, $password, $batchid, $usertype, $email) {
         global $DB, $USER;
 
         $task = new \local_bservicesuite\task\send_password_email();
@@ -350,6 +352,7 @@ class csv_user_upload {
             'password' => $password,
             'batchid' => $batchid,
             'usertype' => $usertype,
+            'email' => $email,
         ]);
 
         // Queue the task

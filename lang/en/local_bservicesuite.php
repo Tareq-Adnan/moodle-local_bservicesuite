@@ -96,19 +96,48 @@ $string['showingfirstxofy'] = 'Showing first {$a->x} of {$a->y} passwords';
 $string['type'] = 'Type';
 $string['student'] = 'Student';
 // Email templates
-$string['newuserpasswordemailgenerated'] = 'Welcome to {$a->site}!
+$string['newuserpasswordemailgenerated'] = '
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
 
-Your account has been created with the following details:
+    <h2 style="color: #667eea; margin: 0 0 20px 0; font-size: 24px;">Welcome to {$a->site}!</h2>
 
-Username: {$a->username}
-Password: {$a->password}
+    <p style="color: #666; margin: 0 0 20px 0; line-height: 1.6;">
+        Your account has been created with the following details:
+    </p>
 
-You can log in at: {$a->url}
+    <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; border-radius: 4px; margin: 20px 0;">
+        <p style="margin: 8px 0; color: #333; font-size: 14px;">
+            <strong style="display: inline-block; min-width: 100px;">Email:</strong>
+            <span style="color: #667eea;">{$a->email}</span>
+        </p>
+        <p style="margin: 8px 0; color: #333; font-size: 14px;">
+            <strong style="display: inline-block; min-width: 100px;">Username:</strong>
+            <span style="color: #667eea;">{$a->username}</span>
+        </p>
+        <p style="margin: 8px 0; color: #333; font-size: 14px;">
+            <strong style="display: inline-block; min-width: 100px;">Password:</strong>
+            <span style="color: #667eea;">{$a->password}</span>
+        </p>
+    </div>
 
-For security reasons, please change your password after first login.
+    <p style="margin: 20px 0;">
+        <a href="{$a->url}" style="display: inline-block; background-color: #667eea; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Log In Now
+        </a>
+    </p>
 
-{$a->signoff}';
+    <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; border-radius: 4px; margin: 20px 0;">
+        <p style="margin: 0; color: #856404; font-size: 14px;">
+            ⚠️ For security reasons, please change your password after first login.
+        </p>
+    </div>
 
+    <p style="color: #999; font-size: 14px; margin: 20px 0 0 0; line-height: 1.6;">
+        {$a->signoff}
+    </p>
+
+</div>
+';
 $string['adminnotificationemail'] = 'Hello {$a->adminname},
 
 The user import batch #{$a->batchid} has been completed.
@@ -125,3 +154,4 @@ You can view the full report at: {$a->url}
 $string['adminnotificationemailsubject'] = 'User Import Completed - {$a}';
 $string['generatedpasswords'] = "Generated Passwords";
 $string['newuserpasswordemailsubject'] = "New user account";
+$string['sent_assesment_report'] = "Sent Assessment Report";
