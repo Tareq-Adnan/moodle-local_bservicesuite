@@ -53,6 +53,7 @@ class sent_assesment_report extends \core\task\adhoc_task {
         if ($parent) {
             $user = $parent;
         }
+        $user->mailformat = 1;
         report::sent_email($reportdata, $user);
     }
 }

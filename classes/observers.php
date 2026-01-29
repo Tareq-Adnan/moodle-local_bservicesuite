@@ -134,7 +134,7 @@ class observers {
 
         $gradeitemid = $edata['other']['itemid'];
         $gradeitem = \grade_item::fetch(['id' => $gradeitemid]);
-        $cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance, $gradeitem->courseid, false, MUST_EXIST);
+        $cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance, $gradeitem->courseid, false);
         $data = [
             'relateduserid' => $edata['relateduserid'],
             'courseid' => $edata['contextinstanceid'],

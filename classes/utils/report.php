@@ -67,6 +67,7 @@ class report {
 
         $from = get_config('local_bservicesuite', 'fromemail');
         $subject = "Assessment Report";
+        $user->mailformat = 1;
 
         if ($from) {
             email_to_user($user, $from, $subject, $msgtext, $msg);
