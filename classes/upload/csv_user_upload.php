@@ -66,7 +66,7 @@ class csv_user_upload {
             'updateexisting' => true,
             'createnewcohorts' => true,
             'emailpassword' => true,
-            'forcepasswordchange' => true,
+            // 'forcepasswordchange' => true,
         ];
 
         $options = array_merge($defaults, $options);
@@ -295,9 +295,9 @@ class csv_user_upload {
             // Force password change on first login.
             $user->id = user_create_user($user, false, true);
 
-            if ($forcepasswordchange) {
-                set_user_preference('auth_forcepasswordchange', 1, $user);
-            }
+            // if ($forcepasswordchange) {
+            //     set_user_preference('auth_forcepasswordchange', 1, $user);
+            // }
 
             $isnew = true;
 
