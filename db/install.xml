@@ -6,9 +6,9 @@
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="login_id" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="payload" TYPE="text" NOTNULL="true"/>
-                <FIELD NAME="synced" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="0=pending,1=success,2=failed"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="payload" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="synced" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="0=pending,1=success,2=failed" SEQUENCE="false"/>
 
             </FIELDS>
 
@@ -25,15 +25,15 @@
         <TABLE NAME="local_bservicesuite_batches" COMMENT="Tracks batch operations for user creation/email sending">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="processing"/>
-                <FIELD NAME="totalusers" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="emailsqueued" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="emailssent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="sessionid" TYPE="char" LENGTH="32" NOTNULL="false"/>
-                <FIELD NAME="resultdata" TYPE="text" NOTNULL="false"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="processing" SEQUENCE="false"/>
+                <FIELD NAME="totalusers" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="emailsqueued" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="emailssent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="sessionid" TYPE="char" LENGTH="32" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="resultdata" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -48,13 +48,13 @@
         <TABLE NAME="local_bservicesuite_passwords" COMMENT="Temporary storage of generated passwords for batch user creation">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="batchid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="password" TYPE="char" LENGTH="255" NOTNULL="true"/>
-                <FIELD NAME="usertype" TYPE="char" LENGTH="20" NOTNULL="true"/>
-                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="emailsent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
-                <FIELD NAME="emailsenttime" TYPE="int" LENGTH="10" NOTNULL="false"/>
+                <FIELD NAME="batchid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="password" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="usertype" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="emailsent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/> 
+                <FIELD NAME="emailsenttime" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -70,9 +70,9 @@
         <TABLE NAME="local_bservicesuite_parents" COMMENT="Mapping between students and parents">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="studentid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="parentid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="studentid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="parentid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
             </FIELDS>
 
             <KEYS>
