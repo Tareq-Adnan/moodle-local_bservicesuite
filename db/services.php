@@ -71,4 +71,12 @@ $functions = [
         'capabilities' => 'local/bsservicessuite:view',
         'services'     => ['moodle_mobile_app'],
     ],
+    'local_bservicesuite_is_parent_user' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'is_parent_user',
+        'description'  => 'Check weather the user is a parent or not',
+        'type'         => 'read',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
 ];

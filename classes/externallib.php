@@ -504,4 +504,42 @@ class externallib extends external_api {
             ])
         );
     }
+
+    /**
+     * Returns description of is_parent_user parameters
+     *
+     * @return external_function_parameters Empty parameters structure since this method takes no parameters
+     */
+    public static function is_parent_user_parameters() {
+        return new external_function_parameters([]);
+    }
+
+    /**
+     * Check if the current user has a parent role
+     *
+     * @return bool True if the current user has a parent role, false otherwise
+     */
+    public static function is_parent_user() {
+        global $USER, $DB;
+
+        $context = context_system::instance();
+        $roles = get_user_roles($context, $USER->id, true);
+
+        foreach ($roles as $role) {
+            if ($role->shortname === 'parent') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns description of is_parent_user return values
+     *
+     * @return external_value Return value structure containing:
+     *         - boolean indicating whether the current user has parent role
+     */
+    public static function is_parent_user_returns() {
+        return new external_value(PARAM_BOOL, 'Is parent user');
+    }
 }
