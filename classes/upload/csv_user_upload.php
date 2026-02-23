@@ -24,6 +24,8 @@
 
 namespace local_bservicesuite\upload;
 
+use context_system;
+
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/csvlib.class.php');
 require_once($CFG->dirroot . '/user/lib.php');
@@ -462,8 +464,13 @@ class csv_user_upload {
                 'parent'
             );
 
-            // Set some capabilities (adjust as needed)
-            $context = \context_system::instance();
+            set_role_contextlevels($parentroleid, [
+                CONTEXT_SYSTEM,
+                CONTEXT_USER,
+            ]);
+
+            // Set some capabilities (adjust as needed).
+            $context = context_system::instance();
             assign_capability('moodle/user:viewdetails', CAP_ALLOW, $parentroleid, $context->id);
             assign_capability('moodle/grade:view', CAP_ALLOW, $parentroleid, $context->id);
 
