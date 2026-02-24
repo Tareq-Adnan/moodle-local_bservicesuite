@@ -112,8 +112,8 @@ class backup_helper {
         // Create new placeholder course.
         $newcourse = new stdClass();
         $newcourse->category = $newgrade->id;
-        $newcourse->fullname = "asdfdsfg";
-        $newcourse->shortname = "asdg";
+        $newcourse->fullname = "temp_course_" . time() . "_" . $userid;
+        $newcourse->shortname = "temp_" . time();
         $newcourse->visible = 1;
         $course = create_course($newcourse);
 
@@ -169,6 +169,9 @@ class backup_helper {
         // For 500MB file, use multipart upload.
         $filesize = $backupfile->get_filesize();
 
+        $deleted = self::clean_old_backups($s3, "backups/course_$courseid", $s3config);
+
+        mtrace("deleted old backups: $deleted");
         mtrace("Uploading {$filename} ({$filesize} bytes) to S3...");
 
         // For large files (> 100MB), use multipart upload.
@@ -176,6 +179,48 @@ class backup_helper {
             return self::multipart_upload($s3, $backupfile, $s3key, $s3config, $courseid);
         } else {
             return self::regular_upload($s3, $backupfile, $s3key, $s3config, $courseid);
+        }
+    }
+
+    /**
+     * Cleans up old backup files from S3 storage for a specific course
+     *
+     * @param \Aws\S3\S3Client $s3 The S3 client instance
+     * @param string $directory The S3 directory path containing the backups
+     * @param object $s3config Configuration object containing S3 settings
+     * @param int $courseid The ID of the course whose old backups should be cleaned
+     * @return int delete count
+     */
+    public static function clean_old_backups($s3, $directory, $s3config) {
+        try {
+            $objects = $s3->listObjects([
+                'Bucket' => $s3config->aws_bucket,
+                'Prefix' => $directory . '/',
+            ]);
+
+            if (!empty($objects['Contents'])) {  // Fixed: check 'Contents' key.
+                $delete = ['Objects' => []];
+
+                // Fixed: iterate over $objects['Contents'].
+                foreach ($objects['Contents'] as $object) {
+                    $delete['Objects'][] = ['Key' => $object['Key']];
+                }
+
+                // Only delete if there are objects to delete.
+                if (!empty($delete['Objects'])) {
+                    $s3->deleteObjects([
+                        'Bucket' => $s3config->aws_bucket,
+                        'Delete' => $delete,
+                    ]);
+                }
+
+                return count($delete['Objects']);
+            }
+
+            return 0; // No files to delete.
+        } catch (moodle_exception $e) {
+            mtrace("Error cleaning old backups: " . $e->getMessage());
+            return 0;
         }
     }
 
@@ -194,7 +239,7 @@ class backup_helper {
         mtrace("Using multipart upload for large file...");
 
         // Create a temporary local file since Moodle's stored_file doesn't support direct streaming.
-        $tempfile = tempnam("$CFG->tempdir/backups3", 'upload_');
+        $tempfile = make_temp_directory('backups3') . '/' . uniqid('upload_');
         $backupfile->copy_content_to($tempfile);
 
         try {
@@ -249,7 +294,7 @@ class backup_helper {
         global $CFG;
         mtrace("Using regular upload...");
         // Create temp file.
-        $tempfile = tempnam($CFG->tempdir . '/backups3', 'upload_');
+        $tempfile = make_temp_directory('backups3') . '/' . uniqid('upload_');
         $backupfile->copy_content_to($tempfile);
 
         try {
@@ -392,7 +437,7 @@ class backup_helper {
             }
 
             return $decoded;
-        } catch (\Exception $e) {
+        } catch (moodle_exception $e) {
             debugging(
                 'User sync exception: ' . $e->getMessage(),
                 DEBUG_DEVELOPER

@@ -71,6 +71,13 @@ $settings->add(new admin_setting_configtext(
     '',
     PARAM_TEXT
 ));
+$settings->add(new admin_setting_configtext(
+    'local_bservicesuite/platform_token',
+    'Platform Bearer',
+    'Platform auth token for using api',
+    '',
+    PARAM_TEXT
+));
 
 $settings->add(new admin_setting_configcheckbox(
     'local_bservicesuite/is_school',
