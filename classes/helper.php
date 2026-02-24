@@ -18,6 +18,7 @@ namespace local_bservicesuite;
 
 use context_course;
 use core\exception\moodle_exception;
+use core\http_client;
 use core_course_category;
 use core_user;
 use stdClass;
@@ -55,6 +56,11 @@ class helper {
      * Used to construct the full update URL by appending to the platform base URL
      */
     public const CENTRAL_COURSE_CREATE = '/api/course/create';
+    /**
+     * Endpoint URL path for retrieving platform authentication token
+     * Used to construct the full token URL by appending to the platform base URL
+     */
+    public const PLATFORM_TOKEN = '/api/moodle/token';
 
     /**
      * Get all visible courses except the site course (id=1)
@@ -62,7 +68,7 @@ class helper {
      * @param int $courseid Optional course ID parameter (not used in current implementation)
      * @return array Array of filtered course objects containing id, fullname, shortname and visible fields
      */
-    public static function total_courses($courseid = 0) {
+    public static function total_courses() {
         $courses = get_courses('all', 'c.sortorder ASC', 'c.id, c.fullname, c.shortname, c.visible');
         $courses = array_filter($courses, function ($course) {
             return $course->visible && $course->id != 1;
@@ -382,6 +388,11 @@ class helper {
             );
             return false;
         }
+        $platformtoken = get_config('local_bservicesuite', 'platform_token');
+
+        if (empty($platformtoken)) {
+            $platformtoken = self::get_platform_token();
+        }
 
         $curl = new curl();
 
@@ -390,6 +401,7 @@ class helper {
             'X-Moodle-Url: ' . $moodleurl,
             'Content-Type: application/json',
             'Accept: application/json',
+            'Authorization: Bearer ' . $platformtoken,
         ]);
 
         // Set curl options.
@@ -400,6 +412,46 @@ class helper {
         ];
 
         return [$curl, $remoteurl, $options];
+    }
+
+    /**
+     * Retrieves the platform authentication token
+     *
+     * @return string The platform authentication token
+     */
+    public static function get_platform_token() {
+        global $CFG;
+        $client = new http_client();
+        $endpoint  = get_config('local_bservicesuite', 'platformurl');
+        $apiurl = $endpoint . self::PLATFORM_TOKEN;
+
+        $payload = [
+            'school_url' => $CFG->wwwroot,
+        ];
+
+        try {
+            $response = $client->post($apiurl, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode($payload),
+            ]);
+
+            $result = json_decode($response->getBody()->getContents(), true);
+
+            if (!empty($result['success']) && !empty($result['token'])) {
+                // Save token in Moodle config.
+                set_config('platform_token', $result['token'], 'local_bservicesuite');
+
+                return $result['token'];
+            } else {
+                debugging('Token API failed: ' . ($result['message'] ?? 'Unknown error'));
+                return false;
+            }
+        } catch (moodle_exception $e) {
+            debugging('Token API exception: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
