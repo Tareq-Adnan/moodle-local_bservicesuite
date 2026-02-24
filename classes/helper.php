@@ -380,6 +380,7 @@ class helper {
         $endpoint  = get_config('local_bservicesuite', 'platformurl');
         $remoteurl = $endpoint . $apiend;
         $moodleurl = $CFG->wwwroot;
+        $isschool = get_config('local_bservicesuite', 'is_school');
 
         if (empty($endpoint)) {
             debugging(
@@ -388,21 +389,28 @@ class helper {
             );
             return false;
         }
-        $platformtoken = get_config('local_bservicesuite', 'platform_token');
 
-        if (empty($platformtoken)) {
-            $platformtoken = self::get_platform_token();
+        $header = [
+            'X-Moodle-Url: ' . $moodleurl,
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ];
+
+        if ($isschool) {
+            $platformtoken = get_config('local_bservicesuite', 'platform_token');
+            if (empty($platformtoken)) {
+                $platformtoken = self::get_platform_token();
+            }
+
+            if (!empty($platformtoken)) {
+                $header[] = 'Authorization: Bearer ' . $platformtoken;
+            }
         }
 
         $curl = new curl();
 
         // Set headers properly.
-        $curl->setHeader([
-            'X-Moodle-Url: ' . $moodleurl,
-            'Content-Type: application/json',
-            'Accept: application/json',
-            'Authorization: Bearer ' . $platformtoken,
-        ]);
+        $curl->setHeader($header);
 
         // Set curl options.
         $options = [
