@@ -34,6 +34,12 @@ class observers {
      * @return void
      */
     public static function create_user(\core\event\user_created $event) {
+
+        $isschool = get_config('local_bservicesuite', 'is_school');
+        if (!intval($isschool)) {
+            return;
+        }
+
         $eventdata = $event->get_data();
         $userid = $eventdata['objectid'];
         $data   = helper::create_or_update_user($userid);
@@ -48,6 +54,12 @@ class observers {
      * @return void
      */
     public static function update_user(\core\event\user_updated $event) {
+
+        $isschool = get_config('local_bservicesuite', 'is_school');
+        if (!intval($isschool)) {
+            return;
+        }
+
         $edata  = $event->get_data();
         $userid = $edata['objectid'];
         $data   = helper::create_or_update_user($userid);
@@ -62,6 +74,12 @@ class observers {
      * @return void
      */
     public static function delete_user(\core\event\user_deleted $event) {
+
+        $isschool = get_config('local_bservicesuite', 'is_school');
+        if (!intval($isschool)) {
+            return;
+        }
+
         $edata  = $event->get_data();
         helper::delete_user($edata);
     }
