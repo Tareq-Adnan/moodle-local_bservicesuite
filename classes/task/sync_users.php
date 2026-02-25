@@ -42,7 +42,7 @@ class sync_users extends scheduled_task {
     public function execute() {
         global $DB;
         $isschool = get_config('local_bservicesuite', 'is_school');
-        if ($isschool) {
+        if (intval($isschool)) {
             helper::sync_missing_users_from_moodle();
             $records = $DB->get_records('local_bservice_user_sync', ['synced' => 0]);
 
