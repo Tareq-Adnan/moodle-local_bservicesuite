@@ -132,18 +132,6 @@ if ($form->is_cancelled()) {
                     )
                 );
             }
-
-            // Download link for all passwords.
-            $downloadurl = new moodle_url('/local/bservicesuite/download_passwords.php', [
-                'batchid' => $results['batchid'],
-                'sesskey' => sesskey(),
-            ]);
-
-            echo html_writer::link(
-                $downloadurl,
-                get_string('downloadallpasswords', 'local_bservicesuite'),
-                ['class' => 'btn btn-secondary']
-            );
         }
 
         // Batch status and tracking.

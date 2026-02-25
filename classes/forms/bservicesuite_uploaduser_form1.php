@@ -130,12 +130,12 @@ class bservicesuite_uploaduser_form1 extends moodleform {
         );
         $mform->setDefault('updateexisting', 1);
 
-        $mform->addElement(
-            'advcheckbox',
-            'forcepasswordchange',
-            get_string('forcepasswordchange', 'local_bservicesuite'),
-            get_string('forcepasswordchangedesc', 'local_bservicesuite')
-        );
+        // $mform->addElement(
+        //     'advcheckbox',
+        //     'forcepasswordchange',
+        //     get_string('forcepasswordchange', 'local_bservicesuite'),
+        //     get_string('forcepasswordchangedesc', 'local_bservicesuite')
+        // );
         $mform->setDefault('forcepasswordchange', 1);
 
         // Cohort options

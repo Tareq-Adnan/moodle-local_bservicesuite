@@ -25,6 +25,7 @@
 namespace local_bservicesuite\upload;
 
 use context_system;
+use core\encryption;
 
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/csvlib.class.php');
@@ -68,7 +69,7 @@ class csv_user_upload {
             'updateexisting' => true,
             'createnewcohorts' => true,
             'emailpassword' => true,
-            // 'forcepasswordchange' => true,
+            'forcepasswordchange' => false,
         ];
 
         $options = array_merge($defaults, $options);
@@ -309,7 +310,7 @@ class csv_user_upload {
                 $results['parents_created']++;
             }
 
-            // Store password in batch table for email sending
+            // Store password in batch table for email sending.
             if ($isnew && $password) {
                 $this->store_password_for_batch($user->id, $password, $batchid, $roletype);
             }
@@ -332,7 +333,7 @@ class csv_user_upload {
         $record = new \stdClass();
         $record->batchid = $batchid;
         $record->userid = $userid;
-        $record->password = $password;
+        $record->password = encryption::encrypt($password);
         $record->usertype = $usertype;
         $record->timecreated = time();
         $record->emailsent = 0;
@@ -357,7 +358,7 @@ class csv_user_upload {
             'email' => $email,
         ]);
 
-        // Queue the task
+        // Queue the task.
         \core\task\manager::queue_adhoc_task($task);
     }
 
