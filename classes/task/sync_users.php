@@ -41,18 +41,20 @@ class sync_users extends scheduled_task {
      */
     public function execute() {
         global $DB;
+        $isschool = get_config('local_bservicesuite', 'is_school');
+        if ($isschool) {
+            helper::sync_missing_users_from_moodle();
+            $records = $DB->get_records('local_bservice_user_sync', ['synced' => 0]);
 
-        helper::sync_missing_users_from_moodle();
-        $records = $DB->get_records('local_bservice_user_sync', ['synced' => 0]);
-
-        foreach ($records as $record) {
-            // Here you would add the code to sync the user data with the external service.
-            // For demonstration purposes, we'll just mark it as synced.
-            $result = helper::sync($record->payload);
-            if (!$result) {
-                continue;
+            foreach ($records as $record) {
+                // Here you would add the code to sync the user data with the external service.
+                // For demonstration purposes, we'll just mark it as synced.
+                $result = helper::sync($record->payload);
+                if (!$result) {
+                    continue;
+                }
+                $result ? helper::mark_synced($record->userid, $result) : null;
             }
-            $result ? helper::mark_synced($record->userid, $result) : null;
         }
     }
 }
