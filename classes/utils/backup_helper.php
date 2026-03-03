@@ -254,15 +254,6 @@ class backup_helper {
                 ],
             ]);
 
-            // Track progress using event system.
-            $uploader->getEventDispatcher()->addListener(
-                'multipart_upload.after_part_upload',
-                function ($event) {
-                    $partnumber = $event['PartNumber'];
-                    mtrace("Uploaded part {$partnumber}");
-                }
-            );
-
             // Execute upload.
             $result = $uploader->upload();
 
