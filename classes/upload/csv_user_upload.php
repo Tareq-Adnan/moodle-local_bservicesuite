@@ -195,14 +195,14 @@ class csv_user_upload {
         if ($cohort) {
             // 4. Add student to cohort
             $this->add_user_to_cohort($student->id, $cohort->id, $results);
-
-            // 5. Map student to parent (using custom field or user relationship)
-            $this->map_student_to_parent($student->id, $parent->id, $results);
         }
+
+        // 5. Map student to parent (using custom field or user relationship)
+        $this->map_student_to_parent($student->id, $parent->id, $results);
 
         // 6. Queue password emails if requested
         if ($options['emailpassword']) {
-            // For student
+            // For student.
             if (!empty($student->email) && validate_email($student->email)) {
                 $this->queue_password_email(
                     $student->id,
@@ -214,8 +214,8 @@ class csv_user_upload {
                 $results['emails_queued']++;
             }
 
-            // For parent
-            if (!empty($parent->email) && validate_email($parent->email)) {
+            // For parent.
+            if (!empty($parent->email) && validate_email($parent->email) && !$parent->userexists) {
                 $this->queue_password_email(
                     $parent->id,
                     $parentpassword,
@@ -227,7 +227,7 @@ class csv_user_upload {
             }
         }
 
-        // Store generated passwords for immediate display
+        // Store generated passwords for immediate display.
         if ($studentpassword && $results['students_created'] > 0) {
             $results['generated_passwords'][] = [
                 'username' => $student->username,
@@ -238,7 +238,7 @@ class csv_user_upload {
             ];
         }
 
-        if ($parentpassword && $results['parents_created'] > 0) {
+        if ($parentpassword && $results['parents_created'] > 0 && !$parent->userexists) {
             $results['generated_passwords'][] = [
                 'username' => $parent->username,
                 'password' => $parentpassword,
@@ -248,7 +248,7 @@ class csv_user_upload {
             ];
         }
 
-        if ($studentpassword || $parentpassword) {
+        if ($studentpassword || $parentpassword && !$parent->userexists) {
             $results['passwords_generated']++;
         }
     }
@@ -259,13 +259,15 @@ class csv_user_upload {
     private function create_or_update_user($username, $firstname, $lastname, $email, $roletype, $password, &$results, $updateexisting, $forcepasswordchange, $batchid) {
         global $DB, $CFG;
 
-        // Check if user exists
+        // Check if user exists.
         $user = $DB->get_record('user', ['username' => $username]);
         $isnew = false;
 
         if ($user) {
+            $user->userupdated = false;
+            $user->userexists = false;
             if ($updateexisting) {
-                // Update existing user - don't change password
+                // Update existing user - don't change password.
                 $user->firstname = $firstname;
                 $user->lastname = $lastname;
                 $user->email = $email;
@@ -279,7 +281,9 @@ class csv_user_upload {
                 } else {
                     $results['parents_updated']++;
                 }
+                $user->userupdated = true;
             }
+            $user->userexists = true;
         } else {
             // Create new user with generated password
             $user = new \stdClass();
@@ -299,7 +303,7 @@ class csv_user_upload {
             $user->id = user_create_user($user, false, true);
 
             // if ($forcepasswordchange) {
-            //     set_user_preference('auth_forcepasswordchange', 1, $user);
+            // set_user_preference('auth_forcepasswordchange', 1, $user);
             // }
 
             $isnew = true;
@@ -316,7 +320,7 @@ class csv_user_upload {
             }
         }
 
-        // Assign system role based on type
+        // Assign system role based on type.
         if ($isnew) {
             $this->assign_system_role($user->id, $roletype);
         }
@@ -439,11 +443,11 @@ class csv_user_upload {
             $exists = $DB->record_exists('role_assignments', [
                 'userid' => $userid,
                 'roleid' => $roleid,
-                'contextid' => \context_system::instance()->id,
+                'contextid' => context_system::instance()->id,
             ]);
 
             if (!$exists) {
-                role_assign($roleid, $userid, \context_system::instance()->id);
+                role_assign($roleid, $userid, context_system::instance()->id);
             }
         }
     }
