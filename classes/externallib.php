@@ -477,6 +477,7 @@ class externallib extends external_api {
             if ($course->id != SITEID) {
                 $course->grade_name = $categories[$course->category]->name;
                 $course->grade = $course->category;
+                $course->image = \core_course\external\course_summary_exporter::get_course_image($course);
             }
             return $course->id != SITEID;
         });
@@ -501,6 +502,7 @@ class externallib extends external_api {
                 'shortname' => new external_value(PARAM_TEXT, 'Course Shortname'),
                 'grade' => new external_value(PARAM_INT, 'Category ID'),
                 'grade_name' => new external_value(PARAM_TEXT, 'Category Name'),
+                'image' => new external_value(PARAM_TEXT, 'Course Image'),
             ])
         );
     }
