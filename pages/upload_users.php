@@ -136,13 +136,16 @@ if ($form->is_cancelled()) {
 
         // Batch status and tracking.
         echo $OUTPUT->box_start('generalbox', 'batchinfo');
+        $downloadurl = new moodle_url('/local/bservicesuite/download.php', ['id' => $results['batchid'], 'sesskey' => sesskey()]);
+
+        echo html_writer::link($downloadurl, get_string('downloadallpasswords', 'local_bservicesuite'), ['class' => "btn btn-sm btn-outline-primary my-2"]);
+
         echo html_writer::tag('h4', get_string('batchinfo', 'local_bservicesuite'));
 
-        $batchurl = new moodle_url('/local/bservicesuite/batchstatus.php', ['id' => $results['batchid']]);
         echo html_writer::tag(
             'p',
             get_string('batchid', 'local_bservicesuite') . ': ' .
-            html_writer::link($batchurl, $results['batchid'])
+            $results['batchid']
         );
 
         echo html_writer::tag(

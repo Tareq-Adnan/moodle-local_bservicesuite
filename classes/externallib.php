@@ -544,4 +544,45 @@ class externallib extends external_api {
     public static function is_parent_user_returns() {
         return new external_value(PARAM_BOOL, 'Is parent user');
     }
+
+    /**
+     * Returns description of delete_assigned_courses parameters
+     *
+     * @return external_function_parameters Parameters structure containing:
+     *         - courseids (array) Array of course IDs to delete
+     */
+    public static function delete_assigned_courses_parameters() {
+        return new external_function_parameters([
+            'courseids' => new external_multiple_structure(
+                new external_value(PARAM_INT, 'Course ID')
+            ),
+        ]);
+    }
+
+    /**
+     * Delete assigned courses
+     *
+     * @param array $courseids Array of course IDs to delete
+     * @return array Returns an array containing the status of the deletion operation
+     * @throws moodle_exception If user lacks required capabilities or course deletion fails
+     */
+    public static function delete_assigned_courses($courseids) {
+        global $DB;
+        require_capability('moodle/course:delete', context_system::instance());
+        return [
+        'status' => helper::perform_delete($courseids),
+        ];
+    }
+
+    /**
+     * Returns description of delete_assigned_courses return values
+     *
+     * @return external_single_structure Return value structure containing:
+     *         - status (bool) Boolean indicating whether courses were deleted successfully
+     */
+    public static function delete_assigned_courses_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_BOOL, 'Courses deleted successfully'),
+        ]);
+    }
 }

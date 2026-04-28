@@ -60,7 +60,7 @@ class csv_user_upload {
      * Process CSV file upload
      */
     public function process_upload($csvcontent, $options = []) {
-        global $CFG, $DB;
+        global $DB;
 
         // Default options
         $defaults = [
