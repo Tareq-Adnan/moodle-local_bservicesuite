@@ -549,4 +549,23 @@ class helper {
             throw new moodle_exception('coursecreatefail', 'local_bservicesuite', '', $e->getMessage());
         }
     }
+
+    /**
+     * Deletes multiple courses from the system
+     *
+     * Iterates through an array of course IDs and deletes each course from the database.
+     * Only deletes courses that exist in the system.
+     *
+     * @param array $courseids Array of course IDs to delete
+     * @return bool
+     */
+    public static function perform_delete($courseids) {
+        global $DB;
+        foreach ($courseids as $id) {
+            if ($course = $DB->get_record('course', ['id' => $id])) {
+                return delete_course($course, false);
+            }
+        }
+        return false;
+    }
 }

@@ -79,4 +79,13 @@ $functions = [
         'capabilities' => 'local/bsservicessuite:view',
         'services'     => ['moodle_mobile_app'],
     ],
+
+    'local_bservicesuite_delete_courses' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'delete_assigned_courses',
+        'description'  => 'delete assigned course from school',
+        'type'         => 'write',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
 ];
