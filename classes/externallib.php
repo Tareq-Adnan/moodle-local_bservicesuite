@@ -30,6 +30,7 @@ use core_external\external_value;
 use core_user;
 use local_bservicesuite\task\backup_to_s3;
 use local_bservicesuite\task\restore_from_s3;
+use local_bservicesuite\task\update_school_info;
 use local_bservicesuite\utils\backup_helper;
 use moodle_exception;
 
@@ -479,6 +480,7 @@ class externallib extends external_api {
                 $course->grade = $course->category;
                 $course->image = \core_course\external\course_summary_exporter::get_course_image($course);
                 $course->parent_grade = $categories[$course->category]->parent;
+                $course->parent_name = $categories[$course->parent_grade]->name;
             }
             return $course->id != SITEID;
         });
@@ -503,6 +505,7 @@ class externallib extends external_api {
                 'shortname' => new external_value(PARAM_TEXT, 'Course Shortname'),
                 'grade' => new external_value(PARAM_INT, 'Category ID'),
                 'parent_grade' => new external_value(PARAM_INT, 'Parent Category'),
+                'parent_name' => new external_value(PARAM_TEXT, 'Parent Category Name'),
                 'grade_name' => new external_value(PARAM_TEXT, 'Category Name'),
                 'image' => new external_value(PARAM_TEXT, 'Course Image'),
             ])
@@ -585,6 +588,127 @@ class externallib extends external_api {
     public static function delete_assigned_courses_returns() {
         return new external_single_structure([
             'status' => new external_value(PARAM_BOOL, 'Courses deleted successfully'),
+        ]);
+    }
+
+
+    /**
+     * Returns description of delete_assigned_courses parameters
+     *
+     * @return external_function_parameters Parameters structure containing:
+     *         - courseids (array) Array of course IDs to delete
+     */
+    public static function update_school_info_parameters() {
+        return new external_function_parameters([
+            'currentemail' => new external_value(PARAM_EMAIL, 'Current Email', VALUE_OPTIONAL),
+            'wantemail' => new external_value(PARAM_EMAIL, 'Want Email', VALUE_OPTIONAL),
+            'sitename' => new external_value(PARAM_TEXT, 'Site full name', VALUE_OPTIONAL),
+        ]);
+    }
+
+    /**
+     * Delete assigned courses
+     *
+     * @param string $currentemail Array of course IDs to delete
+     * @param string $wantemail Array of course IDs to delete
+     * @param string $sitename Array of course IDs to delete
+     * @return array Returns an array containing the status of the update operation
+     * @throws moodle_exception If user lacks required capabilities or course deletion fails
+     */
+    public static function update_school_info($currentemail, $wantemail, $sitename) {
+
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('local/bsservicessuite:view', $context);
+
+        $params = self::validate_parameters(self::update_school_info_parameters(), [
+            'currentemail' => $currentemail ?? '',
+            'wantemail'    => $wantemail ?? '',
+            'sitename'     => $sitename ?? '',
+        ]);
+
+        // Update email only if both addresses are provided and they differ.
+        if (
+            !empty($params['currentemail']) && !empty($params['wantemail'])
+            && $params['currentemail'] !== $params['wantemail']
+        ) {
+            helper::update_manager_email($params['currentemail'], $params['wantemail']);
+        }
+
+        // Update site name only if a non-empty value was provided.
+        if (!empty($params['sitename'])) {
+            helper::update_sitename($params['sitename']);
+        }
+
+        return ['status' => true, 'message' => 'School information updated successfully'];
+    }
+
+    /**
+     * Returns description of delete_assigned_courses return values
+     *
+     * @return external_single_structure Return value structure containing:
+     *         - status (bool) Boolean indicating whether courses were deleted successfully
+     */
+    public static function update_school_info_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_BOOL, 'update status'),
+            'message' => new external_value(PARAM_TEXT, 'update status message'),
+        ]);
+    }
+
+
+    /**
+     * Returns description of delete_assigned_courses parameters
+     *
+     * @return external_function_parameters Parameters structure containing:
+     *         - courseids (array) Array of course IDs to delete
+     */
+    public static function update_school_logo_parameters() {
+        return new external_function_parameters([
+            'logourl' => new external_value(PARAM_URL, 'site logo url'),
+            'filename' => new external_value(PARAM_FILE, 'site logo'),
+        ]);
+    }
+
+    /**
+     * Delete assigned courses
+     *
+     * @param array $logourl school logo
+     * @param array $filename school logo
+     * @return array Returns an array containing the status of the deletion operation
+     * @throws moodle_exception If user lacks required capabilities or course deletion fails
+     */
+    public static function update_school_logo($logourl, $filename = 'logo.png') {
+
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('local/bsservicessuite:view', $context);
+
+        $params = self::validate_parameters(self::update_school_logo_parameters(), [
+            'logourl'  => $logourl,
+            'filename' => $filename,
+        ]);
+
+        if (empty($params['logourl'])) {
+            throw new \invalid_parameter_exception('Logo URL cannot be empty.');
+        }
+
+        $task = new update_school_info();
+        $task->set_custom_data(['logourl' => $params['logourl'], 'filename' => $params['filename']]);
+        manager::queue_adhoc_task($task, true);
+
+        return ['status' => true];
+    }
+
+    /**
+     * Returns description of delete_assigned_courses return values
+     *
+     * @return external_single_structure Return value structure containing:
+     *         - status (bool) Boolean indicating whether courses were deleted successfully
+     */
+    public static function update_school_logo_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_BOOL, 'Logo Update task queue status'),
         ]);
     }
 }

@@ -17,6 +17,8 @@
 namespace local_bservicesuite;
 
 use context_course;
+use context_system;
+use core\exception\invalid_parameter_exception;
 use core\exception\moodle_exception;
 use core\http_client;
 use core_course_category;
@@ -65,7 +67,6 @@ class helper {
     /**
      * Get all visible courses except the site course (id=1)
      *
-     * @param int $courseid Optional course ID parameter (not used in current implementation)
      * @return array Array of filtered course objects containing id, fullname, shortname and visible fields
      */
     public static function total_courses() {
@@ -567,5 +568,231 @@ class helper {
             }
         }
         return false;
+    }
+
+
+    /**
+     * Updates the site name in Moodle configuration and database
+     *
+     * This method cleans and validates the provided site name, then updates both
+     * the Moodle configuration and the front-page course record to maintain
+     * synchronization. It also purges all caches to ensure the changes take effect.
+     *
+     * @param string $sitename The new site name to set
+     * @return array Array containing status and the updated fullname
+     * @throws \invalid_parameter_exception If the site name is blank after cleaning
+     */
+    public static function update_sitename($sitename) {
+        global $DB;
+
+        $cleanfull = clean_param(trim($sitename), PARAM_TEXT);
+
+        if ($cleanfull === '') {
+            throw new \invalid_parameter_exception('fullname cannot be blank after cleaning.');
+        }
+        // Update mdl_config (used by many core components).
+        set_config('fullname', $cleanfull);
+
+        // Also update the front-page course record so $SITE->fullname stays in sync.
+        $DB->set_field('course', 'fullname', $cleanfull, ['id' => SITEID]);
+
+        purge_all_caches();
+        $site = get_site();
+
+        return [
+            'status'   => true,
+            'fullname'  => $site->fullname,
+        ];
+    }
+
+    /**
+     * Updates a user's email address in the database
+     *
+     * Finds a user by their current email address and updates it to a new email address.
+     * If no user is found with the current email, no action is taken.
+     *
+     * @param string $currentemail The current email address to search for
+     * @param string $wantemail The new email address to update to
+     * @return void
+     */
+    public static function update_manager_email(string $currentemail, string $wantemail) {
+        global $DB;
+
+        $user = $DB->get_record('user', ['email' => $currentemail]);
+        if (!$user) {
+            return; // No user found, nothing to do.
+        }
+
+        // Check the new email isn't already taken by someone else.
+        $conflict = $DB->get_record('user', ['email' => $wantemail]);
+        if ($conflict && $conflict->id !== $user->id) {
+            throw new \invalid_parameter_exception("Email '{$wantemail}' is already in use.");
+        }
+
+        $DB->update_record('user', ['id' => $user->id, 'email' => $wantemail]);
+    }
+
+
+    /**
+     * Fetches an image from a remote URL and saves it as the site logo across:
+     *   - core_admin  : logo, logocompact, favicon
+     *   - theme_edash : main_logo, mobile_logo, favicon, main_footer_logo
+     *
+     * Follows Moodle's standard admin_setting_configstoredfile conventions:
+     * each stored-file setting uses the config key name as both the filearea
+     * and the config value (which Moodle sets to '1' when a file is present).
+     *
+     * @param  string $logourl  Publicly accessible image URL provided by Laravel
+     * @param  string $filename Filename used when storing (e.g. "logo.png")
+     * @return void
+     * @throws \invalid_parameter_exception
+     * @throws \moodle_exception
+     */
+    public static function update_system_logo(string $logourl, string $filename = 'logo.png'): void {
+        global $CFG;
+
+        require_once($CFG->libdir . '/filelib.php');
+
+        mtrace("update_system_logo: Starting logo update. URL: {$logourl}, Filename: {$filename}");
+
+        $tempfile = tempnam($CFG->tempdir, 'sitelogo_');
+        mtrace("update_system_logo: Temp file created at: {$tempfile}");
+
+        $params = [];
+        $options = ['filepath' => $tempfile];
+        $curl = new curl();
+        $result = $curl->download_one($logourl, $params, $options);
+
+        if ($result !== true || $curl->get_errno()) {
+            mtrace("update_system_logo: ERROR - Failed to download logo. cURL errno: " . $curl->get_errno() . ", Error: " . $curl->error);
+            if (file_exists($tempfile)) {
+                @unlink($tempfile);
+            }
+            throw new \moodle_exception(
+                'generalexceptionmessage',
+                'error',
+                '',
+                'Failed to fetch logo. ' . $curl->error
+            );
+        }
+
+        mtrace("update_system_logo: Logo downloaded successfully. File size: " . filesize($tempfile) . " bytes.");
+
+        if (!file_exists($tempfile) || filesize($tempfile) === 0) {
+            mtrace("update_system_logo: ERROR - Downloaded file is missing or empty.");
+            @unlink($tempfile);
+            throw new \invalid_parameter_exception('Downloaded file is empty.');
+        }
+
+        if (!empty($curl->get_errno())) {
+            mtrace("update_system_logo: ERROR - cURL error detected post-download. errno: " . $curl->get_errno() . ", Error: " . $curl->error);
+            @unlink($tempfile);
+            throw new \moodle_exception(
+                'generalexceptionmessage',
+                'error',
+                '',
+                'Failed to fetch logo. cURL error ' . $curl->get_errno() . ': ' . $curl->error
+            );
+        }
+
+        if (!file_exists($tempfile) || filesize($tempfile) === 0) {
+            mtrace("update_system_logo: ERROR - Downloaded file is empty after second check.");
+            @unlink($tempfile);
+            throw new \invalid_parameter_exception(
+                'Downloaded file is empty. Ensure the URL is publicly accessible.'
+            );
+        }
+
+        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+        $mimetype = $finfo->file($tempfile);
+        mtrace("update_system_logo: Detected MIME type: {$mimetype}");
+
+        $allowedmimes = [
+        'image/png',
+        'image/jpeg',
+        'image/gif',
+        'image/svg+xml',
+        'image/webp',
+        'image/x-icon',
+        'image/vnd.microsoft.icon',
+        ];
+
+        if (!in_array($mimetype, $allowedmimes, true)) {
+            mtrace("update_system_logo: ERROR - Unsupported MIME type '{$mimetype}'.");
+            @unlink($tempfile);
+            throw new \invalid_parameter_exception(
+                "Unsupported image type '{$mimetype}'. Allowed: " . implode(', ', $allowedmimes)
+            );
+        }
+
+        try {
+            $fs         = get_file_storage();
+            $syscontext = context_system::instance();
+            $coreadminareas = ['logo', 'logocompact', 'favicon'];
+
+            mtrace("update_system_logo: Processing core_admin file areas: " . implode(', ', $coreadminareas));
+            foreach ($coreadminareas as $filearea) {
+                $fs->delete_area_files($syscontext->id, 'core_admin', $filearea, 0);
+                mtrace("update_system_logo: Deleted existing files in core_admin/{$filearea}.");
+
+                $fs->create_file_from_pathname(
+                    [
+                    'contextid' => $syscontext->id,
+                    'component' => 'core_admin',
+                    'filearea'  => $filearea,
+                    'itemid'    => 0,
+                    'filepath'  => '/',
+                    'filename'  => $filename,
+                    ],
+                    $tempfile
+                );
+                set_config($filearea, "/$filename", 'core_admin');
+                mtrace("update_system_logo: Stored file and set config for core_admin/{$filearea}.");
+            }
+
+            set_config('logocontextid', $syscontext->id);
+            set_config('logocompactcontextid', $syscontext->id);
+            mtrace("update_system_logo: Set logocontextid and logocompactcontextid to context ID: {$syscontext->id}.");
+
+            $edashareas = [
+            'main_logo',
+            'mobile_logo',
+            'favicon',
+            'main_footer_logo',
+            ];
+
+            mtrace("update_system_logo: Processing theme_edash file areas: " . implode(', ', $edashareas));
+            foreach ($edashareas as $filearea) {
+                $fs->delete_area_files($syscontext->id, 'theme_edash', $filearea, 0);
+                mtrace("update_system_logo: Deleted existing files in theme_edash/{$filearea}.");
+
+                $fs->create_file_from_pathname(
+                    [
+                    'contextid' => $syscontext->id,
+                    'component' => 'theme_edash',
+                    'filearea'  => $filearea,
+                    'itemid'    => 0,
+                    'filepath'  => '/',
+                    'filename'  => $filename,
+                    ],
+                    $tempfile
+                );
+
+                set_config($filearea, "/$filename", 'theme_edash');
+                set_config("logo_image_width", "120", 'theme_edash');
+                set_config("logo_image_height", "60", 'theme_edash');
+                mtrace("update_system_logo: Stored file and set config for theme_edash/{$filearea}.");
+            }
+        } catch (\Throwable $e) {
+            mtrace("update_system_logo: EXCEPTION during file storage - " . get_class($e) . ": " . $e->getMessage());
+            mtrace("update_system_logo: Stack trace: " . $e->getTraceAsString());
+            throw $e; // Re-throw so the adhoc task can handle/retry it.
+        } finally {
+            @unlink($tempfile);
+            mtrace("update_system_logo: Temp file cleaned up.");
+        }
+
+        theme_reset_all_caches();
+        mtrace("update_system_logo: Theme caches reset. Logo update complete.");
     }
 }

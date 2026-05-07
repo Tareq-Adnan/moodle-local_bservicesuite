@@ -14,20 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_bservicesuite\task;
+
+use core\task\adhoc_task;
+use local_bservicesuite\helper;
+
 /**
- * Version information for BS Service Suite
+ * Class update_school_info
  *
  * @package    local_bservicesuite
- * @copyright  2025 Brain Station 23 ltd <sales@brainstation-23.com>
+ * @copyright  2026 Brain Station 23 <sales@brainstation-23.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @author     Tarekul Islam <tarekul.islam@brainstation-23.com>
  */
+class update_school_info extends adhoc_task {
+    /**
+     * Get a descriptive name for this task (shown to admins).
+     *
+     * @return string
+     */
+    public function get_name() {
+        return get_string('update_info', 'local_bservicesuite');
+    }
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component    = 'local_bservicesuite';
-$plugin->release      = '1.0';
-$plugin->version      = 2026022820;
-$plugin->requires     = 2024100700;
-$plugin->supported    = [405, 501];
-$plugin->maturity     = MATURITY_STABLE;
+    /**
+     * Execute the task.
+     */
+    public function execute() {
+        $data = $this->get_custom_data();
+        $logourl = $data->logourl;
+        $filename = $data->filename;
+        helper::update_system_logo($logourl, $filename);
+    }
+}
