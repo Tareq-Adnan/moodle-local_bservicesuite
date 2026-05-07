@@ -157,3 +157,4 @@ $string['newuserpasswordemailsubject'] = "New user account";
 $string['sent_assesment_report'] = "Sent Assessment Report";
 $string['delete_course'] = "Delete Course";
 $string['nousersfound'] = "No new user is created.";
+$string['update_info'] = "Update School Information ";

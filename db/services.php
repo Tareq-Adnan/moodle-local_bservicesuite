@@ -88,4 +88,20 @@ $functions = [
         'capabilities' => 'local/bsservicessuite:view',
         'services'     => ['moodle_mobile_app'],
     ],
+    'local_bservicesuite_update_school_info' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'update_school_info',
+        'description'  => 'update moodle site information',
+        'type'         => 'write',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
+    'local_bservicesuite_update_site_logo' => [
+        'classname'    => externallib::class,
+        'methodname'   => 'update_school_logo',
+        'description'  => 'update moodle school logo',
+        'type'         => 'write',
+        'capabilities' => 'local/bsservicessuite:view',
+        'services'     => ['moodle_mobile_app'],
+    ],
 ];
