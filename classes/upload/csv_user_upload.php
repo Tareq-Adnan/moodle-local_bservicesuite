@@ -512,7 +512,6 @@ class csv_user_upload {
             $cohort->description = "Cohort for Grade {$grade}, Section {$section}";
             $cohort->contextid = context_system::instance()->id;
             $cohort->visible = 1;
-            $cohort->component = 'local_bservicesuite';
             $cohort->timecreated = time();
             $cohort->timemodified = time();
 
