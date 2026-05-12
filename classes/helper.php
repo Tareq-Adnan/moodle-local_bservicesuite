@@ -482,6 +482,7 @@ class helper {
 
         $course = $DB->get_record('course', ['id' => $courseid]);
         $category = core_course_category::get($course->category);
+        $parent = $category->get_parent_coursecat();
         [$curl, $remoteurl, $options] = self::get_curl(self::CENTRAL_COURSE_CREATE);
 
         if (!$curl) {
@@ -494,6 +495,8 @@ class helper {
             'shortname'  => $course->shortname,
             'grade'      => $course->category,
             'grade_name' => $category->name,
+            'parent_grade' => $parent ? $parent->id : null,
+            'parent_name' => $parent ? $parent->name : null,
             'status'     => 'available',
         ];
 
