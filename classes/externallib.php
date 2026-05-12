@@ -410,8 +410,10 @@ class externallib extends external_api {
      * Restores a course from a backup file
      *
      * @param string $filepath Path to the backup file to restore from
-     * @param int $categoryid Category ID where the restored course should be created
-     * @param int $school_id Category ID where the restored course should be created
+     * @param int $grade Category ID where the restored course should be created
+     * @param string $gradename Category name where the restored course should be created
+     * @param int $courseid Central course id
+     * @param int $schoolid School id
      * @return array Returns an array containing:
      *               - status: Status of the restore task (e.g. 'queued')
      * @throws moodle_exception If validation fails or user lacks required capabilities

@@ -42,21 +42,23 @@ class backup_helper {
      * @return string $s3key The S3 key/path where the backup file was uploaded
      */
     public static function perform_backup($courseid, $userid) {
+        $bc = null;
 
-        // Create backup controller.
-        $bc = new backup_controller(
-            backup::TYPE_1COURSE,
-            $courseid, // Course ID.
-            backup::FORMAT_MOODLE,
-            backup::INTERACTIVE_NO,
-            backup::MODE_GENERAL,
-            $userid
-        );
+        try {
+            // Create backup controller.
+            $bc = new backup_controller(
+                backup::TYPE_1COURSE,
+                $courseid, // Course ID.
+                backup::FORMAT_MOODLE,
+                backup::INTERACTIVE_NO,
+                backup::MODE_GENERAL,
+                $userid
+            );
 
-        $plan = $bc->get_plan();
+            $plan = $bc->get_plan();
 
-        // Disable user-related settings safely.
-        $disablelist = [
+            // Disable user-related settings safely.
+            $disablelist = [
             'users',
             'roleassignments',
             'groups',
@@ -64,90 +66,190 @@ class backup_helper {
             'completion',
             'logs',
             'gradehistories',
-        ];
+            ];
 
-        $bc->set_status(backup::STATUS_AWAITING);
-        foreach ($disablelist as $setting) {
-            if ($plan->setting_exists($setting)) {
-                $plan->get_setting($setting)->set_value(false);
+            $bc->set_status(backup::STATUS_AWAITING);
+            foreach ($disablelist as $setting) {
+                if ($plan->setting_exists($setting)) {
+                    $plan->get_setting($setting)->set_value(false);
+                }
+            }
+
+            // Execute backup.
+            $bc->execute_plan();
+
+            // Get backup file (stored_file object).
+            $results = $plan->get_results();
+
+            if (empty($results['backup_destination'])) {
+                throw new moodle_exception(
+                    'errorbackup',
+                    'local_bservicesuite'
+                );
+            }
+
+            $backupfile = $results['backup_destination'];
+
+            if (!$backupfile->get_filesize()) {
+                throw new moodle_exception(
+                    'emptybackup',
+                    'local_bservicesuite'
+                );
+            }
+
+            if (!$backupfile) {
+                throw new moodle_exception('errorbackup', 'local_bservicesuite');
+            }
+
+            return self::upload_to_s3($backupfile, $courseid);
+        } catch (moodle_exception $e) {
+            mtrace('Backup failed: ' . $e->getMessage());
+
+            throw $e;
+        } finally {
+            // Always destroy controller.
+            if ($bc) {
+                try {
+                    $bc->destroy();
+                } catch (moodle_exception $e) {
+                    mtrace(
+                        'Backup controller destroy failed: ' .
+                        $e->getMessage()
+                    );
+                }
             }
         }
-
-        // Execute backup.
-        $bc->execute_plan();
-
-        // Get backup file (stored_file object).
-        $results = $plan->get_results();
-        $backupfile = $results['backup_destination'];
-
-        if (!$backupfile) {
-            throw new moodle_exception('errorbackup', 'local_bservicesuite');
-        }
-
-        return self::upload_to_s3($backupfile, $courseid);
     }
 
     /**
      * Restores a course from a backup file stored in S3
      *
      * @param string $s3key The S3 key/path where the backup file is stored
-     * @param int $categoryid The category ID where the restored course should be placed
+     * @param int $grade The category ID where the restored course should be placed
+     * @param int $userid The ID of the user performing the restore
+     * @param string $gradename The name of the grade category
+     * @param int $ccourse The central course ID for updating the school course record
+     * @param int $schoolid The ID of the school for updating the school course record
      * @throws moodle_exception If restore fails or backup file cannot be extracted
      * @return int The ID of the newly restored course
      */
     public static function perform_restore($s3key, $grade, $userid, $gradename, $ccourse, $schoolid) {
+        global $DB;
 
-        $newgrade = self::check_grade_exists($gradename);
-        $localfile = self::get_from_s3($s3key);
+        $controller = null;
+        $course = null;
+        $localfile = null;
+        $fulltempdir = null;
+        try {
+            $newgrade = self::check_grade_exists($gradename);
+            $localfile = self::get_from_s3($s3key);
 
-        $tempdir = restore_controller::get_tempdir_name($grade, $userid);
-        $fulltempdir = make_backup_temp_directory($tempdir);
-        $fb = get_file_packer('application/vnd.moodle.backup');
-        $result = $fb->extract_to_pathname($localfile, $fulltempdir);
+            if (!file_exists($localfile) || filesize($localfile) <= 0) {
+                throw new moodle_exception(
+                    'invalidbackupfile',
+                    'local_bservicesuite'
+                );
+            }
 
-        if (!$result) {
-            throw new moodle_exception('extractfailed', 'local_bservicesuite');
+            $tempdir = restore_controller::get_tempdir_name($grade, $userid);
+            $fulltempdir = make_backup_temp_directory($tempdir);
+            $fb = get_file_packer('application/vnd.moodle.backup');
+            $result = $fb->extract_to_pathname($localfile, $fulltempdir);
+
+            if (!$result) {
+                throw new moodle_exception('extractfailed', 'local_bservicesuite');
+            }
+
+            // Create new placeholder course.
+            $newcourse = new stdClass();
+            $newcourse->category = $newgrade->id;
+            $newcourse->fullname = "temp_course_" . time() . "_" . $userid;
+            $newcourse->shortname = "temp_" . time();
+            $newcourse->visible = 1;
+            $course = create_course($newcourse);
+
+            $controller = new restore_controller(
+                $tempdir,
+                $course->id,
+                backup::INTERACTIVE_NO,
+                backup::MODE_GENERAL,
+                $userid,
+                backup::TARGET_NEW_COURSE
+            );
+
+            if ($controller->get_status() == null) {
+                throw new moodle_exception('controllererror', 'local_bservicesuite');
+            }
+
+            $precheck = $controller->execute_precheck();
+
+            if (!$precheck) {
+                $errors = $controller->get_precheck_results();
+                throw new moodle_exception(
+                    'precheckfailed',
+                    'local_bservicesuite',
+                    '',
+                    json_encode($errors)
+                );
+            }
+            $backupinfo = $controller->get_info();
+            $originalshortname = $backupinfo->original_course_shortname;
+            $uniqueshortname = $originalshortname;
+
+            $controller->get_plan()->get_setting('course_fullname')->set_value($backupinfo->original_course_fullname);
+            $controller->get_plan()->get_setting('course_shortname')->set_value($uniqueshortname);
+            $controller->execute_plan();
+
+            $newcourseid = $controller->get_courseid();
+            $newcourse = get_course($newcourseid);
+
+            $controller->destroy();
+
+            // Clean up temp extraction directory.
+            remove_dir($fulltempdir);
+            self::update_school_course($ccourse, $newcourseid, $newgrade->idnumber, $schoolid);
+            return $newcourse->id;
+        } catch (moodle_exception $e) {
+            mtrace('Restore failed: ' . $e->getMessage());
+
+            // Cleanup failed course.
+            if (!empty($course->id)) {
+                try {
+                    delete_course($course, false);
+                } catch (moodle_exception $cleanupexception) {
+                    mtrace(
+                        'Course cleanup failed: ' .
+                        $cleanupexception->getMessage()
+                    );
+                }
+            }
+
+            throw $e;
+        } finally {
+            // Destroy controller.
+            if ($controller) {
+                try {
+                    $controller->destroy();
+                } catch (moodle_exception $e) {
+                    mtrace(
+                        'Controller destroy failed: ' .
+                        $e->getMessage()
+                    );
+                }
+            }
+
+            // Remove extracted temp directory.
+            if (!empty($fulltempdir) && is_dir($fulltempdir)) {
+                remove_dir($fulltempdir);
+                mtrace("deleted local backups dir: $fulltempdir");
+            }
+
+            // Remove downloaded backup file.
+            if (!empty($localfile) && file_exists($localfile)) {
+                unlink($localfile);
+                mtrace("deleted local backups: $localfile");
+            }
         }
-
-        // Create new placeholder course.
-        $newcourse = new stdClass();
-        $newcourse->category = $newgrade->id;
-        $newcourse->fullname = "temp_course_" . time() . "_" . $userid;
-        $newcourse->shortname = "temp_" . time();
-        $newcourse->visible = 1;
-        $course = create_course($newcourse);
-
-        $controller = new restore_controller(
-            $tempdir,
-            $course->id,
-            backup::INTERACTIVE_NO,
-            backup::MODE_GENERAL,
-            $userid,
-            backup::TARGET_NEW_COURSE
-        );
-
-        if ($controller->get_status() == null) {
-            throw new moodle_exception('controllererror', 'local_bservicesuite');
-        }
-
-        $controller->execute_precheck();
-        $backupinfo = $controller->get_info();
-        $originalshortname = $backupinfo->original_course_shortname;
-        $uniqueshortname = $originalshortname;
-
-        $controller->get_plan()->get_setting('course_fullname')->set_value($backupinfo->original_course_fullname);
-        $controller->get_plan()->get_setting('course_shortname')->set_value($uniqueshortname);
-        $controller->execute_plan();
-
-        $newcourseid = $controller->get_courseid();
-        $newcourse = get_course($newcourseid);
-
-        $controller->destroy();
-
-        // Clean up temp extraction directory.
-        remove_dir($fulltempdir);
-        self::update_school_course($ccourse, $newcourseid, $newgrade->idnumber, $schoolid);
-        return $newcourse->id;
     }
 
     /**
@@ -159,7 +261,7 @@ class backup_helper {
      * @throws moodle_exception If the upload fails
      */
     private static function upload_to_s3($backupfile, $courseid) {
-        global $CFG;
+
         // Implement S3 upload logic here.
         $s3config = get_config('local_bservicesuite');
         $s3 = self::get_s3_bucket($s3config);
@@ -174,11 +276,15 @@ class backup_helper {
         mtrace("deleted old backups: $deleted");
         mtrace("Uploading {$filename} ({$filesize} bytes) to S3...");
 
+        // Create a temporary local file since Moodle's stored_file doesn't support direct streaming.
+        $tempfile = make_temp_directory('backups3') . '/' . uniqid('upload_');
+        $backupfile->copy_content_to($tempfile);
+
         // For large files (> 100MB), use multipart upload.
         if ($filesize > 100 * 1024 * 1024) {
-            return self::multipart_upload($s3, $backupfile, $s3key, $s3config, $courseid);
+            return self::multipart_upload($s3, $tempfile, $s3key, $s3config, $courseid);
         } else {
-            return self::regular_upload($s3, $backupfile, $s3key, $s3config, $courseid);
+            return self::regular_upload($s3, $tempfile, $s3key, $s3config, $courseid);
         }
     }
 
@@ -188,12 +294,11 @@ class backup_helper {
      * @param \Aws\S3\S3Client $s3 The S3 client instance
      * @param string $directory The S3 directory path containing the backups
      * @param object $s3config Configuration object containing S3 settings
-     * @param int $courseid The ID of the course whose old backups should be cleaned
      * @return int delete count
      */
     public static function clean_old_backups($s3, $directory, $s3config) {
         try {
-            $objects = $s3->listObjects([
+            $objects = $s3->listObjectsV2([
                 'Bucket' => $s3config->aws_bucket,
                 'Prefix' => $directory . '/',
             ]);
@@ -203,6 +308,10 @@ class backup_helper {
 
                 // Fixed: iterate over $objects['Contents'].
                 foreach ($objects['Contents'] as $object) {
+                    if (empty($object['Key'])) {
+                        continue;
+                    }
+
                     $delete['Objects'][] = ['Key' => $object['Key']];
                 }
 
@@ -228,19 +337,15 @@ class backup_helper {
      * Handles multipart upload of large files to S3
      *
      * @param \Aws\S3\S3Client $s3 The S3 client instance
-     * @param \stored_file $backupfile The Moodle stored_file object containing the backup
+     * @param string $tempfile The path to the temporary file
      * @param string $s3key The S3 key/path where the file should be uploaded
      * @param object $s3config Configuration object containing S3 settings
      * @return string The S3 key where the file was uploaded
      * @throws \moodle_exception If the upload fails
      */
-    private static function multipart_upload($s3, $backupfile, $s3key, $s3config, $courseid) {
-        global $CFG;
-        mtrace("Using multipart upload for large file...");
+    private static function multipart_upload($s3, $tempfile, $s3key, $s3config, $courseid) {
 
-        // Create a temporary local file since Moodle's stored_file doesn't support direct streaming.
-        $tempfile = make_temp_directory('backups3') . '/' . uniqid('upload_');
-        $backupfile->copy_content_to($tempfile);
+        mtrace("Using multipart upload for large file...");
 
         try {
             // Create MultipartUploader.
@@ -265,6 +370,7 @@ class backup_helper {
             // Clean up temp file.
             if (file_exists($tempfile)) {
                 unlink($tempfile);
+                mtrace("deleted local backups: $tempfile");
             }
         }
         self::update_coursepath($courseid, $s3key);
@@ -275,24 +381,20 @@ class backup_helper {
      * Handles regular upload of files to S3 (for files smaller than 100MB)
      *
      * @param \Aws\S3\S3Client $s3 The S3 client instance
-     * @param \stored_file $backupfile The Moodle stored_file object containing the backup
+     * @param string $tempfile The path to the temporary file
      * @param string $s3key The S3 key/path where the file should be uploaded
      * @param object $s3config Configuration object containing S3 settings
      * @return string The S3 key where the file was uploaded
      * @throws \moodle_exception If the upload fails
      */
-    private static function regular_upload($s3, $backupfile, $s3key, $s3config, $courseid) {
-        global $CFG;
+    private static function regular_upload($s3, $tempfile, $s3key, $s3config, $courseid) {
         mtrace("Using regular upload...");
-        // Create temp file.
-        $tempfile = make_temp_directory('backups3') . '/' . uniqid('upload_');
-        $backupfile->copy_content_to($tempfile);
 
         try {
             $result = $s3->putObject([
                 'Bucket' => $s3config->aws_bucket,
                 'Key'    => $s3key,
-                'Body'   => $backupfile->get_content(),
+                'Body' => fopen($tempfile, 'rb'),
                 'ContentType' => 'application/vnd.moodle.backup',
             ]);
 
@@ -300,7 +402,14 @@ class backup_helper {
         } catch (\Aws\Exception\AwsException $e) {
             mtrace("Upload failed: " . $e->getMessage());
             throw new moodle_exception('uploadfailed', 'local_bservicesuite', '', $e->getMessage());
+        } finally {
+            // Clean up temp file.
+            if (file_exists($tempfile)) {
+                unlink($tempfile);
+                mtrace("deleted local backups: $tempfile");
+            }
         }
+
         self::update_coursepath($courseid, $s3key);
         return $s3key;
     }
@@ -319,9 +428,7 @@ class backup_helper {
 
         // Create temp directory.
         $tempdir = $CFG->tempdir . '/backups3_restore';
-        if (!is_dir($tempdir)) {
-            mkdir($tempdir, 0777, true);
-        }
+        check_dir_exists($tempdir, true, true);
 
         $localfile = $tempdir . '/' . basename($s3key);
 
@@ -341,10 +448,31 @@ class backup_helper {
                 'SaveAs' => $localfile,
             ]);
 
+            if (!file_exists($localfile)) {
+                throw new moodle_exception(
+                    'downloadfailed',
+                    'local_bservicesuite',
+                    '',
+                    'Downloaded file not found locally.'
+                );
+            }
+
+            if (filesize($localfile) <= 0) {
+                throw new moodle_exception(
+                    'downloadfailed',
+                    'local_bservicesuite',
+                    '',
+                    'Downloaded file is empty.'
+                );
+            }
+
             mtrace("Download completed: {$localfile}");
         } catch (\Aws\S3\Exception\S3Exception $e) {
             mtrace("Download failed: " . $e->getMessage());
             throw new moodle_exception('downloadfailed', 'local_bservicesuite', '', $e->getMessage());
+        } catch (moodle_exception $e) {
+            mtrace('Download failed: ' . $e->getMessage());
+            throw $e;
         }
 
         return $localfile;
@@ -475,8 +603,10 @@ class backup_helper {
     /**
      * Updates the course path in the database
      *
-     * @param int $courseid The ID of the course to update
-     * @param string $path The new path to set for the course
+     * @param int $ccourse The ID of the course to update
+     * @param string $newcourseid The new course ID to set
+     * @param string $grade The grade for the course
+     * @param int $schoolid The ID of the school
      * @return void
      */
     private static function update_school_course($ccourse, $newcourseid, $grade, $schoolid) {
@@ -531,7 +661,7 @@ class backup_helper {
             }
 
             return $decoded;
-        } catch (\Exception $e) {
+        } catch (moodle_exception $e) {
             debugging(
                 'User sync exception: ' . $e->getMessage(),
                 DEBUG_DEVELOPER
