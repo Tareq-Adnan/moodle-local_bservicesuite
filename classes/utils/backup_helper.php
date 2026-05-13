@@ -598,7 +598,7 @@ class backup_helper {
             ]);
         }
 
-        $defaultcategory = \core_course_category::get(1, IGNORE_MISSING);
+        $defaultcategory = \core_course_category::get(2, IGNORE_MISSING);
 
         // If not found by ID, try finding by name.
         if (!$defaultcategory) {
