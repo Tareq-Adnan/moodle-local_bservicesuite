@@ -29,6 +29,7 @@ use core_external\external_single_structure;
 use core_external\external_value;
 use core_user;
 use local_bservicesuite\task\backup_to_s3;
+use local_bservicesuite\task\delete_course;
 use local_bservicesuite\task\restore_from_s3;
 use local_bservicesuite\task\update_school_info;
 use local_bservicesuite\utils\backup_helper;
@@ -576,8 +577,14 @@ class externallib extends external_api {
     public static function delete_assigned_courses($courseids) {
         global $DB;
         require_capability('moodle/course:delete', context_system::instance());
+        $params = self::validate_parameters(self::delete_assigned_courses_parameters(), ['courseids' => $courseids]);
+
+        $task = new delete_course();
+        $task->set_custom_data(['courseids' => $params['courseids']]);
+        manager::queue_adhoc_task($task, true);
+
         return [
-        'status' => helper::perform_delete($courseids),
+        'status' => true,
         ];
     }
 

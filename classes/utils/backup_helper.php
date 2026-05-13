@@ -569,11 +569,25 @@ class backup_helper {
     /**
      * Checks if a grade category exists and creates it if not found
      *
-     * @param int $grade The grade category ID to check/update
      * @param string $gradename The name of the grade category
-     * @return stdClass
+     * @return stdClass The grade category object
      */
     private static function check_grade_exists($gradename) {
+
+        global $DB;
+
+        $defaultcategory = \core_course_category::get(1, IGNORE_MISSING);
+
+        if ($defaultcategory && empty($defaultcategory->idnumber)) {
+            // Optional: ensure it has no child categories or courses before deleting.
+            $haschildren = $DB->record_exists('course_categories', ['parent' => 1]);
+            $hascourses = $DB->record_exists('course', ['category' => 1]);
+
+            if (!$haschildren && !$hascourses) {
+                $defaultcategory->delete_full(false);
+            }
+        }
+
         // Generate idnumber from gradename.
         $idnumber = strtolower(str_replace(' ', '_', $gradename));
 
