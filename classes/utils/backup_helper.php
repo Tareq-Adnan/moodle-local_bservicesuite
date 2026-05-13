@@ -576,20 +576,8 @@ class backup_helper {
 
         global $DB;
 
-        $defaultcategory = \core_course_category::get(1, IGNORE_MISSING);
-
-        if ($defaultcategory && empty($defaultcategory->idnumber)) {
-            // Optional: ensure it has no child categories or courses before deleting.
-            $haschildren = $DB->record_exists('course_categories', ['parent' => 1]);
-            $hascourses = $DB->record_exists('course', ['category' => 1]);
-
-            if (!$haschildren && !$hascourses) {
-                $defaultcategory->delete_full(false);
-            }
-        }
-
         // Generate idnumber from gradename.
-        $idnumber = strtolower(str_replace(' ', '_', $gradename));
+        $idnumber = strtolower(str_replace(' ', '_', trim($gradename)));
 
         // Step 1: Try to find category by idnumber (slug).
         $category = null;
@@ -608,6 +596,18 @@ class backup_helper {
                 'idnumber' => $idnumber,
                 'parent' => 0,
             ]);
+        }
+
+        $defaultcategory = \core_course_category::get(1, IGNORE_MISSING);
+
+        if ($defaultcategory && empty($defaultcategory->idnumber)) {
+            // Optional: ensure it has no child categories or courses before deleting.
+            $haschildren = $DB->record_exists('course_categories', ['parent' => 1]);
+            $hascourses = $DB->record_exists('course', ['category' => 1]);
+
+            if (!$haschildren && !$hascourses) {
+                $defaultcategory->delete_full(false);
+            }
         }
 
         // Update $grade with the category ID for later use.
