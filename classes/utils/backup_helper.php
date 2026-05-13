@@ -600,10 +600,17 @@ class backup_helper {
 
         $defaultcategory = \core_course_category::get(1, IGNORE_MISSING);
 
+        // If not found by ID, try finding by name.
+        if (!$defaultcategory) {
+            $categoryrecord = $DB->get_record('course_categories', ['name' => 'Category 1'], '*', IGNORE_MISSING);
+            if ($categoryrecord) {
+                $defaultcategory = \core_course_category::get($categoryrecord->id, IGNORE_MISSING);
+            }
+        }
+
         if ($defaultcategory && empty($defaultcategory->idnumber)) {
-            // Optional: ensure it has no child categories or courses before deleting.
-            $haschildren = $DB->record_exists('course_categories', ['parent' => 1]);
-            $hascourses = $DB->record_exists('course', ['category' => 1]);
+            $haschildren = $DB->record_exists('course_categories', ['parent' => $defaultcategory->id]);
+            $hascourses  = $DB->record_exists('course', ['category' => $defaultcategory->id]);
 
             if (!$haschildren && !$hascourses) {
                 $defaultcategory->delete_full(false);
